@@ -7,7 +7,7 @@ PYTHON := $(shell if [ -x .venv/Scripts/python.exe ]; then echo .venv/Scripts/py
                    else echo python; fi)
 
 .PHONY: help setup certs up down ps logs migrate seed simulate bench-ingest burst inject-fault \
-        lake-init flink-submit backfill batch train build-kb test chaos lint
+        lake-init flink-submit backfill batch train build-kb refresh-risk test chaos lint
 
 VEHICLES ?= 5000
 DAYS ?= 30
@@ -73,6 +73,9 @@ train: ## Train the sklearn model vs baseline, write docs/evidence/ml/report.md,
 
 build-kb: ## Populate the pgvector DTC knowledge base + failure signatures
 	$(PYTHON) services/ml/build_kb.py
+
+refresh-risk: ## Refresh the vehicle_latest_risk materialized view the at-risk API reads (run after make train)
+	docker compose exec -T postgres sh -c 'psql -U "$$POSTGRES_USER" -d "$$POSTGRES_DB" -v ON_ERROR_STOP=1 -q -c "REFRESH MATERIALIZED VIEW CONCURRENTLY vehicle_latest_risk;"'
 
 test: ## Run the full test suite (unit + integration + contract + BDD)
 	$(PYTHON) -m pytest tests/unit -q

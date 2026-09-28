@@ -9,8 +9,8 @@ x-logging: &default-logging
 services:
   # ---------------------------------------------------------------------
   # profile: core — MQTT, Kafka, Flink runtime, the polyglot data stores.
-  # api and web join this profile once their code exists (sessions 6, 7) —
-  # no point defining a build context with no Dockerfile.
+  # web joins this profile once its code exists (session 7) — no point
+  # defining a build context with no Dockerfile.
   # ---------------------------------------------------------------------
   mosquitto:
     image: eclipse-mosquitto:2.0
@@ -287,6 +287,46 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-fleetpulse}
       POSTGRES_USER: ${POSTGRES_USER:-fleetpulse}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+    logging: *default-logging
+    restart: unless-stopped
+
+  api:
+    build:
+      context: .
+      dockerfile: services/api/Dockerfile
+    profiles: ["core"]
+    depends_on:
+      - postgres
+      - redis
+      - mongodb
+      - kafka
+      - keycloak
+    ports:
+      - "8000:8000"
+    environment:
+      API_PORT: 8000
+      API_DB_USER: fleetpulse_api
+      API_DB_PASSWORD: changeme
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-fleetpulse}
+      REDIS_HOST: ${REDIS_HOST:-redis}
+      REDIS_PORT: ${REDIS_PORT:-6379}
+      MONGO_HOST: mongodb
+      MONGO_PORT: 27017
+      MONGO_ROOT_USER: ${MONGO_ROOT_USER:-fleetpulse}
+      MONGO_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:-changeme}
+      MONGO_DB: ${MONGO_DB:-fleetpulse}
+      KAFKA_BROKERS: ${KAFKA_BROKERS:-kafka:9092}
+      # 8080, not the .env KEYCLOAK_PORT=8081 default (stale — Keycloak's
+      # container listens on its image default 8080; the host-published
+      # port 8082 is what a browser/API-client uses instead, see
+      # infra/keycloak/fleetpulse-realm.json's comment on issuer validation).
+      KEYCLOAK_HOST: keycloak
+      KEYCLOAK_INTERNAL_PORT: 8080
+      KEYCLOAK_REALM: ${KEYCLOAK_REALM:-fleetpulse}
+      RATE_LIMIT_CAPACITY: 60
+      RATE_LIMIT_PER_MINUTE: 60
     logging: *default-logging
     restart: unless-stopped
 

@@ -1,0 +1,110 @@
+{
+  "realm": "fleetpulse",
+  "enabled": true,
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "accessTokenLifespan": 900,
+  "requiredActions": [],
+  "roles": {
+    "realm": [
+      { "name": "fleet_admin", "description": "Full tenant access, including erasure and approvals" },
+      { "name": "fleet_manager", "description": "At-risk list, alerts, work orders, depot booking" },
+      { "name": "technician", "description": "Assigned work orders, masked vehicle location" },
+      { "name": "auditor", "description": "Read-only audit log access, masked vehicle location" }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "fleetpulse-api",
+      "enabled": true,
+      "publicClient": false,
+      "bearerOnly": false,
+      "secret": "fleetpulse-api-secret",
+      "protocol": "openid-connect",
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "standardFlowEnabled": true,
+      "redirectUris": ["*"],
+      "webOrigins": ["*"],
+      "fullScopeAllowed": true,
+      "protocolMappers": [
+        {
+          "name": "tenant",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.attribute": "tenant",
+            "claim.name": "tenant",
+            "jsonType.label": "String",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        },
+        {
+          "name": "realm roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "consentRequired": false,
+          "config": {
+            "claim.name": "realm_access.roles",
+            "jsonType.label": "String",
+            "multivalued": "true",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "fleetpulse-web",
+      "enabled": true,
+      "publicClient": true,
+      "protocol": "openid-connect",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "redirectUris": ["http://localhost:5173/*"],
+      "webOrigins": ["http://localhost:5173"]
+    }
+  ],
+  "users": [
+    {
+      "username": "admin@demo",
+      "email": "admin@demo.fleetpulse",
+      "enabled": true,
+      "emailVerified": true,
+      "attributes": { "tenant": ["demo"] },
+      "credentials": [{ "type": "password", "value": "changeme", "temporary": false }],
+      "realmRoles": ["fleet_admin"]
+    },
+    {
+      "username": "manager@demo",
+      "email": "manager@demo.fleetpulse",
+      "enabled": true,
+      "emailVerified": true,
+      "attributes": { "tenant": ["demo"] },
+      "credentials": [{ "type": "password", "value": "changeme", "temporary": false }],
+      "realmRoles": ["fleet_manager"]
+    },
+    {
+      "username": "tech@demo",
+      "email": "tech@demo.fleetpulse",
+      "enabled": true,
+      "emailVerified": true,
+      "attributes": { "tenant": ["demo"] },
+      "credentials": [{ "type": "password", "value": "changeme", "temporary": false }],
+      "realmRoles": ["technician"]
+    },
+    {
+      "username": "audit@demo",
+      "email": "audit@demo.fleetpulse",
+      "enabled": true,
+      "emailVerified": true,
+      "attributes": { "tenant": ["demo"] },
+      "credentials": [{ "type": "password", "value": "changeme", "temporary": false }],
+      "realmRoles": ["auditor"]
+    }
+  ]
+}
