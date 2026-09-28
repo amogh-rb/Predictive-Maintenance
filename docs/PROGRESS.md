@@ -5,6 +5,19 @@ Read this (not chat history) at the start of every new session.
 
 ---
 
+## Session 3 — 2026-09-28
+Built the Postgres 3NF core (`db/postgres/migrations/`: tenant, depot, vehicle_model, driver, vehicle, app_user, subscription, alert, work_order, prediction, audit_log, plus the pgvector-backed `dtc_kb`/`failure_signature` tables) with RLS (`FORCE ROW LEVEL SECURITY` + a `tenant_isolation` policy per tenant-scoped table, driven by `app.tenant_id`), and the TimescaleDB side (`db/timescale/migrations/`: `telemetry_fast` + `telemetry_health` hypertables space-partitioned by VIN hash, compression/retention policies, and a `telemetry_fast_daily` continuous aggregate for Spark's future feature job). Wrote `db/migrate.sh` + `make migrate` to apply both since `docker-entrypoint-initdb.d` only fires on an empty volume and these containers were already initialized back in session 1. Built `db/postgres/seed_fleet.py` (`make seed`), which reuses the simulator's `generate_fleet(seed=42)` so seeded VINs/driver_tokens match what `make simulate` actually publishes; seeded 100,000 vehicles + 100,000 drivers + 5 depots via `COPY` in ~7 s. ER diagram at `docs/diagrams/er-diagram.md` (Mermaid). PLAN §6.3 row 3 ticked.
+
+**Verified:** vehicle_type distribution matches the 70/20/10 fleet mix (70,070 ICE / 19,898 EV / 10,032 HYBRID); RLS actually blocks cross-tenant reads for a non-superuser, non-BYPASSRLS role (confirmed 0 rows with no `app.tenant_id` set, 100,000 with the real tenant) — **important for session 6**: the FastAPI service's DB role must be created as `NOSUPERUSER NOBYPASSRLS`, since Postgres always exempts superusers from RLS regardless of `FORCE`, and the default `POSTGRES_USER` docker creates *is* a superuser.
+
+**Blocker hit and fixed:** a native Windows PostgreSQL service already listens on host port 5432, shadowing Docker's forward for the `postgres` container (host connections were silently hitting the wrong server, causing bogus auth failures). Remapped Docker's published port to **5434** (`docker-compose.yml`, `.env`/`.env.example` — `POSTGRES_PORT_EXTERNAL=5434`); the in-network hostname/port (`postgres:5432`) that Flink/API/etc. use internally is unaffected. Also added `*_HOST_EXTERNAL`/`*_PORT_EXTERNAL` vars for both Postgres and Timescale, matching the existing Kafka/MQTT convention for host-run tools.
+
+**Next:** Session 4 — Flink SQL jobs (dedup, windowed rules for failures 1–5, CEP misfire pattern, sinks to Timescale/Parquet/alerts) + state-writer (Redis, PG alerts, Mongo twin).
+
+**Blockers:** none carried forward (port conflict above is resolved). Still pre-existing: `minio` (Garage) shows `unhealthy` in `docker compose ps`, not touched this session.
+
+---
+
 ## Session 2 — 2026-09-28
 Built `fleetcore` (VIN ISO 3779 check digit, DTC regex, Bloom filter, the universal FAST/HEALTH/EVENT pydantic schema + matching Avro file, 51 tests), the simulator (100K-vehicle fleet gen, failures 1-5 with a severity ramp, duplicate/reorder/burst noise injection, MQTT publisher, `make simulate`/`make inject-fault`/`make bench-ingest`, 25 tests), and ingest-gateway (shard-consistency + schema/VIN/DTC validation, Bloom dedup pre-filter, bounded-queue back-pressure, Kafka producer with DLQ routing, 13 tests — 85 total, all green). Verified live end-to-end against the running `core` stack: simulator → Mosquitto (mTLS) → ingest-gateway → Kafka `telemetry` (325 sent, 320 forwarded, 5 noise-duplicates correctly deduped, 0 DLQ), and `inject-fault --type overheat` drove coolant_c from 88°C to 119°C, crossing the 110°C real-time threshold, confirming the failure-ramp mechanism for session 4's alerting.
 

@@ -6,7 +6,7 @@ PYTHON := $(shell if [ -x .venv/Scripts/python.exe ]; then echo .venv/Scripts/py
                    elif [ -x .venv/bin/python ]; then echo .venv/bin/python; \
                    else echo python; fi)
 
-.PHONY: help setup certs up down ps logs seed simulate bench-ingest burst inject-fault \
+.PHONY: help setup certs up down ps logs migrate seed simulate bench-ingest burst inject-fault \
         batch train test chaos lint
 
 help: ## Show this help
@@ -33,8 +33,11 @@ ps: ## Show status of running compose services
 logs: ## Tail logs for the core profile
 	docker compose --profile core logs -f --tail=100
 
-seed: ## Seed 100K vehicles/drivers/depots into Postgres (session 3+)
-	@echo "TODO (session 3): seed script not yet built"
+migrate: ## Apply Postgres + Timescale SQL migrations against the running core stack
+	bash db/migrate.sh
+
+seed: migrate ## Seed 100K vehicles/drivers/depots into Postgres
+	$(PYTHON) db/postgres/seed_fleet.py
 
 simulate: ## Run the truck simulator against MQTT, e.g. make simulate RATE=20000
 	$(PYTHON) services/simulator/main.py --rate $(RATE)

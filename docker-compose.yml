@@ -133,7 +133,9 @@ services:
     image: pgvector/pgvector:pg16
     profiles: ["core"]
     ports:
-      - "5432:5432"
+      # Host port 5434, not 5432: a native Windows PostgreSQL service already
+      # holds 5432 on this machine, shadowing Docker's forward (session 3).
+      - "5434:5432"
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-fleetpulse}
       POSTGRES_USER: ${POSTGRES_USER:-fleetpulse}
