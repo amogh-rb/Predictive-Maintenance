@@ -67,7 +67,13 @@ def run_simulation(
     n_active = min(active_vehicles or rate_eps, len(fleet))
     active = fleet[:n_active]
     engines = {v.vin: SignalEngine(v, failure_plans.get(v.vin)) for v in active}
-    seq_counters = {v.vin: 0 for v in active}
+    # A per-run millisecond base, not 0: a real device's seq survives reboots,
+    # and restarting at 0 made every repeat run's vin:seq pairs look like
+    # duplicates to the gateway's Bloom filter, Flink's dedup state and the
+    # state-writer's seq guard (~40% of one session's traffic was dropped).
+    # ~1 msg/s per vehicle can never catch up with a 1000/s clock.
+    seq_base = int(time.time() * 1000)
+    seq_counters = {v.vin: seq_base for v in active}
     noise = NoiseInjector(seed=seed)
 
     logger.info("simulating %d active vehicles (%d in fleet, %d with planted failures) at ~%d events/s",

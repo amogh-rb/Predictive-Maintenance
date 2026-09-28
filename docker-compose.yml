@@ -112,6 +112,10 @@ services:
         s3.path.style.access: true
         s3.access-key: ${GARAGE_ACCESS_KEY:-GKdeadbeefdeadbeefdeadbeef}
         s3.secret-key: ${GARAGE_SECRET_KEY:-deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef}
+        # Garage (unlike AWS) reports NoSuchKey on bulk-deleting S3A's fake
+        # directory markers, which S3A retries forever — a checkpointing job
+        # hangs in INITIALIZING. "keep" makes S3A never delete them.
+        fs.s3a.directory.marker.retention: keep
     volumes:
       - ./stream/flink/sql:/opt/flink/sql:ro
     logging: *default-logging
@@ -137,6 +141,7 @@ services:
         s3.path.style.access: true
         s3.access-key: ${GARAGE_ACCESS_KEY:-GKdeadbeefdeadbeefdeadbeef}
         s3.secret-key: ${GARAGE_SECRET_KEY:-deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef}
+        fs.s3a.directory.marker.retention: keep
     logging: *default-logging
 
   postgres:

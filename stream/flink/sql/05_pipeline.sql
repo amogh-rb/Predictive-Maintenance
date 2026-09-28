@@ -19,9 +19,13 @@ WHERE msg_type = 'FAST';
 INSERT INTO telemetry_health_sink
 SELECT
     CAST(event_time AS TIMESTAMP(3)), vin, tenant, seq,
-    payload.tire_kpa, payload.tire_c, payload.brake_pad_pct,
+    -- JSON '[..]' -> Postgres array literal '{..}' (see telemetry_health_sink).
+    REPLACE(REPLACE(JSON_STRING(payload.tire_kpa), '[', '{'), ']', '}'),
+    REPLACE(REPLACE(JSON_STRING(payload.tire_c), '[', '{'), ']', '}'),
+    REPLACE(REPLACE(JSON_STRING(payload.brake_pad_pct), '[', '{'), ']', '}'),
     payload.batt_12v_rest_v, payload.crank_min_v, payload.charge_v,
-    payload.engine_hours, payload.idle_s, payload.mil_on, payload.active_dtc,
+    payload.engine_hours, payload.idle_s, payload.mil_on,
+    REPLACE(REPLACE(JSON_STRING(payload.active_dtc), '[', '{'), ']', '}'),
     payload.cell_v_delta_mv, payload.cell_temp_max_c, payload.cell_temp_min_c, payload.soh_pct
 FROM telemetry_dedup
 WHERE msg_type = 'HEALTH';

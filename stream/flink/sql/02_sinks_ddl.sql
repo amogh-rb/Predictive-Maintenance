@@ -31,28 +31,35 @@ CREATE TABLE telemetry_fast_sink (
 );
 
 -- Column order/names match db/timescale/migrations/003_telemetry_health.sql.
+-- The four array columns are STRING here, not ARRAY: the JDBC connector's
+-- Postgres converter throws "Writing ARRAY type is not yet supported" on the
+-- first HEALTH row (it killed a job that had otherwise run for 1h42m).
+-- 05_pipeline.sql renders each array as a Postgres array literal
+-- ('{90.5,91.2}', '{"P0300"}') and `stringtype=unspecified` below makes the
+-- driver send it untyped, so Postgres parses it straight into the table's
+-- native double precision[] / text[] columns — no schema change needed.
 CREATE TABLE telemetry_health_sink (
     ts                  TIMESTAMP(3),
     vin                 STRING,
     tenant              STRING,
     seq                 BIGINT,
-    tire_kpa            ARRAY<DOUBLE>,
-    tire_c              ARRAY<DOUBLE>,
-    brake_pad_pct       ARRAY<DOUBLE>,
+    tire_kpa            STRING,
+    tire_c              STRING,
+    brake_pad_pct       STRING,
     batt_12v_rest_v     DOUBLE,
     crank_min_v         DOUBLE,
     charge_v            DOUBLE,
     engine_hours        DOUBLE,
     idle_s              INT,
     mil_on              BOOLEAN,
-    active_dtc          ARRAY<STRING>,
+    active_dtc          STRING,
     cell_v_delta_mv     DOUBLE,
     cell_temp_max_c     DOUBLE,
     cell_temp_min_c     DOUBLE,
     soh_pct             DOUBLE
 ) WITH (
     'connector' = 'jdbc',
-    'url' = 'jdbc:postgresql://timescaledb:5432/telemetry',
+    'url' = 'jdbc:postgresql://timescaledb:5432/telemetry?stringtype=unspecified',
     'table-name' = 'telemetry_health',
     'username' = 'fleetpulse',
     'password' = 'changeme',
@@ -60,14 +67,11 @@ CREATE TABLE telemetry_health_sink (
     'sink.buffer-flush.interval' = '1s'
 );
 
--- Warm/cold lake (PLAN §2 lifecycle) — plain JSON-per-line rather than
--- Parquet for this session's slice: the flink-sql-parquet writer needs a
--- bulk/rolling file sink whose part files only become visible on checkpoint
--- (default 3-minute interval here), so JSON keeps `docker compose exec
--- flink-jobmanager` verification and the 10-minute manual smoke run in
--- PLAN §6.3 session 4 able to see files land quickly; swapping 'format' to
--- 'parquet' later is a one-line change once a longer soak (session 9) is
--- driving it. Partitioned by day so a day's data is one prefix.
+-- Warm/cold lake (PLAN §2 lifecycle), partitioned by day so a day's data is
+-- one prefix. JSON-per-line for now; PLAN §6.2 says Parquet — switching needs
+-- flink-sql-parquet added to infra/compose/flink/Dockerfile plus 'format' =
+-- 'parquet' here. Either format only commits files on a checkpoint, which
+-- run-jobs.sh enables (every 30 s).
 -- `payload` keeps its nested ROW type rather than being pre-serialized to a
 -- STRING: Flink SQL has no ROW-to-STRING cast, but the JSON format writer
 -- serializes a ROW column to a nested JSON object natively, so passing it

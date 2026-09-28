@@ -87,7 +87,7 @@ def main(argv: list[str] | None = None) -> None:
     logging.info("injecting %s failure on %s for %.0fs (onset now, failure_at +%.0fs)",
                  args.type, vin, total_seconds, args.ramp_seconds)
     try:
-        seq = 0
+        seq = int(time.time() * 1000)  # monotonic across runs; see simulate.py
         for _ in range(int(total_seconds)):
             at = datetime.now(timezone.utc)
             engine.step(1.0)

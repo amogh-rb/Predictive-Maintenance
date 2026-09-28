@@ -22,6 +22,12 @@ SQL_DIR=stream/flink/sql
 # paths) and get mangled; stdin has no path to mangle.
 {
     echo "SET 'table.exec.state.ttl' = '1 h';"
+    # Checkpointing is load-bearing, not optional: the lake's filesystem sink
+    # only finalizes part files on a checkpoint (without it, files stay as
+    # forever-unfinished S3 multipart uploads), and enabling it also switches
+    # Flink from no-restart to its default restart-on-failure strategy.
+    echo "SET 'execution.checkpointing.interval' = '30 s';"
+    echo "SET 'state.checkpoints.dir' = 's3://fleetpulse-lake/checkpoints';"
     echo "SET 'pipeline.name' = 'fleetpulse-telemetry-pipeline';"
     for f in 00_source.sql 01_dedup.sql 02_sinks_ddl.sql 03_realtime_rules.sql 04_cep_misfire.sql 05_pipeline.sql; do
         cat "$SQL_DIR/$f"  # each file's statements are already `;`-terminated

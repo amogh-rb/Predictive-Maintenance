@@ -31,5 +31,9 @@ FROM (
         *,
         ROW_NUMBER() OVER (PARTITION BY vin, seq ORDER BY proc_time ASC) AS row_num
     FROM telemetry_raw
+    -- Timescale declares both NOT NULL; with no restart strategy configured,
+    -- one such row (e.g. a pre-session-4 message without `tenant`) would
+    -- otherwise fail the JDBC sink and take the whole job down permanently.
+    WHERE tenant IS NOT NULL AND event_time IS NOT NULL
 )
 WHERE row_num = 1;
