@@ -14,6 +14,16 @@ Built the Flink SQL pipeline (`stream/flink/sql/00-05`, submitted as one `STATEM
 
 **Known gap, not a pipeline bug:** `services/simulator/inject_fault.py` (built session 2, before these rules existed) doesn't reliably trigger them — its single HEALTH message fires at t=0 when severity is still 0, and its 15s overheat ramp only spends ~8s above 110°C against the cooling rule's 30s sustained-window requirement. Worth a follow-up: either shape the injector's ramp/HEALTH timing to each rule's actual window, or add a `--hold-seconds` flag. Verification above used a direct synthetic Kafka message instead.
 
+**Operational notes for whoever restarts this stack (including future sessions):**
+- `make lake-init` must be re-run any time the Garage (`minio` service) volume is fresh — the bucket, key and cluster layout aren't baked into the image or committed anywhere else.
+- `make flink-submit` must be re-run any time `flink-jobmanager` restarts — this session didn't configure checkpointing, so no job state survives a restart; `docker compose ps` showing the container "Up" does not mean the pipeline job is running (check `curl localhost:8081/jobs`).
+- If you rebuild `flink-jobmanager`/`flink-taskmanager` (e.g. after editing `infra/compose/flink/Dockerfile`), rebuild **and** recreate both before resubmitting — `docker compose build` alone doesn't restart the running containers.
+
+**Manual verification checklist for this session's "Done when" (Flink UI screenshot obtained 2026-09-28, confirms the job graph: source → dedup → HOP window / MATCH_RECOGNIZE / append-only branch → Timescale JDBC / lake filesystem / alerts Kafka sinks, all parallelism 1, no backpressure):**
+- [x] Flink UI (`localhost:8081`) shows the job RUNNING with the expected DAG shape.
+- [ ] `make simulate RATE=2000` for a minute or two, then check `telemetry_fast`/`telemetry_health` row counts climbing in Timescale, and `docker compose exec minio /garage bucket info fleetpulse-lake` for growing object count (the JSON lake sink).
+- [ ] A REAL (not synthetic) alert end-to-end, ideally via `make inject-fault` on a confirmed ICE VIN using `TYPE=oil` (single-reading rule, no dwell needed — `overheat`'s 30s sustained-window requirement and the HEALTH-based rules don't line up with `inject_fault.py`'s timing profile, see the known-gap note above) — check the Postgres `alert` table afterward.
+
 **Next:** Session 5 — history backfill script, Spark feature job, sklearn model vs baseline, pgvector DTC KB + failure signatures.
 
 **Blockers:** none. Still pre-existing, unrelated to this session: nothing new — the Garage `unhealthy` status from sessions 1-3 is now actually fixed (see above), not just cosmetically ignored.
