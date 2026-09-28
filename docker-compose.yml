@@ -315,7 +315,13 @@ services:
     profiles: ["batch"]
     command: ["tail", "-f", "/dev/null"]
     volumes:
-      - ./batch/spark:/opt/spark-jobs:ro
+      - ./batch/spark:/opt/spark-jobs
+    environment:
+      TIMESCALE_HOST: timescaledb
+      TIMESCALE_PORT: 5432
+      TIMESCALE_DB: ${TIMESCALE_DB:-telemetry}
+      TIMESCALE_USER: ${TIMESCALE_USER:-fleetpulse}
+      TIMESCALE_PASSWORD: ${TIMESCALE_PASSWORD:-changeme}
     logging: *default-logging
 
   # ---------------------------------------------------------------------

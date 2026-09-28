@@ -10,7 +10,7 @@ Tick a row when its "Done when" condition is met. This is the source of truth fo
 | 2 | fleetcore + simulator + ingest-gateway | [x] | Validated events in Kafka `telemetry`; throughput number known (937 events/s end-to-end at RATE=1000, see PROGRESS) |
 | 3 | Postgres 3NF + Timescale + seed | [x] | 100K vehicles in PG |
 | 4 | Flink SQL jobs + state-writer | [x] | Alerts in PG within seconds |
-| 5 | Backfill + Spark features + sklearn model | [ ] | Risk scores + `docs/evidence/ml/report.md` |
+| 5 | Backfill + Spark features + sklearn model | [x] | Risk scores + `docs/evidence/ml/report.md` |
 | 6 | FastAPI + Keycloak + RBAC/RLS + WebSocket | [ ] | Secured API passes tests |
 | 7 | React UI (4 screens + audit) | [ ] | Full journey in the browser |
 | 8 | Copilot (LangGraph + MCP) + OTel/Prometheus/Grafana | [ ] | Copilot answers; Grafana shows throughput/lag/latency |

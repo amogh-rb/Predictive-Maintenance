@@ -29,6 +29,8 @@ web/build/
 docs/evidence/**/*.parquet
 docs/evidence/**/*.csv
 data/
+batch/spark/data/
+batch/spark/output/
 
 # infra state
 infra/terraform/**/.terraform/

@@ -7,15 +7,18 @@ PYTHON := $(shell if [ -x .venv/Scripts/python.exe ]; then echo .venv/Scripts/py
                    else echo python; fi)
 
 .PHONY: help setup certs up down ps logs migrate seed simulate bench-ingest burst inject-fault \
-        lake-init flink-submit batch train test chaos lint
+        lake-init flink-submit backfill batch train build-kb test chaos lint
+
+VEHICLES ?= 5000
+DAYS ?= 30
 
 help: ## Show this help
 	@grep -hE '^[a-zA-Z_-]+:.*## ' $(MAKEFILE_LIST) | sort | awk 'BEGIN{FS=":.*## "}{printf "%-16s %s\n", $$1, $$2}'
 
-setup: ## Create .venv and install dev + fleetcore deps (run once, or after touching requirements)
+setup: ## Create .venv and install dev + fleetcore + ml deps (run once, or after touching requirements)
 	python -m venv .venv
 	$(PYTHON) -m pip install -q --upgrade pip
-	$(PYTHON) -m pip install -q -r requirements-dev.txt -e libs
+	$(PYTHON) -m pip install -q -r requirements-dev.txt -r services/ml/requirements.txt -e libs
 
 certs: ## Generate the dev CA + Mosquitto server cert, plus per-shard client certs, for mTLS
 	bash infra/certs/generate-dev-certs.sh
@@ -57,11 +60,19 @@ lake-init: ## One-time: provision the Garage bucket/key for Flink's Parquet/JSON
 flink-submit: ## Submit the Flink SQL pipeline (dedup, rules, CEP, sinks) as one job
 	bash stream/flink/run-jobs.sh
 
-batch: ## Run the Spark nightly feature job (session 5+)
-	@echo "TODO (session 5): Spark batch job not yet built"
+backfill: ## Backfill synthetic telemetry history for ML training, e.g. make backfill VEHICLES=20000 DAYS=30
+	$(PYTHON) db/timescale/backfill_history.py --vehicles $(VEHICLES) --days $(DAYS)
 
-train: ## Train the sklearn model vs baseline (session 5+)
-	@echo "TODO (session 5): training script not yet built"
+batch: ## Run the Spark nightly feature job (reads backfilled history, writes features.parquet)
+	MSYS_NO_PATHCONV=1 docker compose --profile batch run --rm spark \
+		/opt/spark/bin/spark-submit --conf spark.jars.ivy=/tmp/ivy2 \
+		--packages org.postgresql:postgresql:42.7.3 /opt/spark-jobs/feature_job.py
+
+train: ## Train the sklearn model vs baseline, write docs/evidence/ml/report.md, score predictions
+	$(PYTHON) services/ml/train.py
+
+build-kb: ## Populate the pgvector DTC knowledge base + failure signatures
+	$(PYTHON) services/ml/build_kb.py
 
 test: ## Run the full test suite (unit + integration + contract + BDD)
 	$(PYTHON) -m pytest tests/unit -q
