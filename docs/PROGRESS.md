@@ -12,7 +12,9 @@ Built `fleetcore` (VIN ISO 3779 check digit, DTC regex, Bloom filter, the univer
 
 **Next:** Session 3 — Postgres 3NF migrations + RLS, Timescale hypertable + continuous aggregate, seed 100K vehicles/drivers/depots, ER diagram.
 
-**Blockers:** none. **Pending manual step (this session's "You" column):** run `make bench-ingest` (5 min) and paste back the achieved events/s line — the PLAN §6.3 row 2 checklist is ticked `[~]` until that number is in hand. Also worth a look when convenient: `minio` (Garage) shows `unhealthy` in `docker compose ps` — not touched this session, pre-existing from session 1's swap.
+**Blockers:** none. Also worth a look when convenient: `minio` (Garage) shows `unhealthy` in `docker compose ps` — not touched this session, pre-existing from session 1's swap.
+
+**`make bench-ingest` result (5 min, RATE=1000, the Makefile default):** 311,697 messages attempted (952 events/s — the simulator itself is the bottleneck at this rate, not Mosquitto/Kafka: a single Python process paces to wall-clock ticks and per-tick JSON/paho overhead eats a little headroom), 306,715 delivered end-to-end to Kafka's `telemetry` topic (937 events/s, 98.4% of attempted — the gap is expected duplicate-drop from noise injection plus in-flight messages not yet landed at measurement time, not loss). PLAN §6.3 row 2 is now fully ticked. Higher RATE values (e.g. `make bench-ingest RATE=20000`) haven't been tried yet — worth doing in a later session to find where the local ceiling actually is, per PLAN §3's 10-25K events/s local-demo target.
 
 ---
 

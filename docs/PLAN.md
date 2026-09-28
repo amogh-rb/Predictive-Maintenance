@@ -7,7 +7,7 @@ Tick a row when its "Done when" condition is met. This is the source of truth fo
 |---|---|---|---|
 | 0 | Manual prep | [x] | Docker running, repo URL ready |
 | 1 | Repo skeleton, CLAUDE.md, PLAN/PROGRESS, core docker-compose, Makefile, .env.example, CI stub | [x] | All infra healthy; first commit pushed |
-| 2 | fleetcore + simulator + ingest-gateway | [~] | Validated events in Kafka `telemetry` (done); throughput number known (pending `make bench-ingest`) |
+| 2 | fleetcore + simulator + ingest-gateway | [x] | Validated events in Kafka `telemetry`; throughput number known (937 events/s end-to-end at RATE=1000, see PROGRESS) |
 | 3 | Postgres 3NF + Timescale + seed | [ ] | 100K vehicles in PG |
 | 4 | Flink SQL jobs + state-writer | [ ] | Alerts in PG within seconds |
 | 5 | Backfill + Spark features + sklearn model | [ ] | Risk scores + `docs/evidence/ml/report.md` |
