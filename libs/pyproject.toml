@@ -1,0 +1,16 @@
+[project]
+name = "fleetcore"
+version = "0.1.0"
+description = "FleetPulse shared domain: universal message schema, VIN/DTC algorithms, Bloom filter"
+requires-python = ">=3.11"
+dependencies = [
+    "pydantic>=2.6",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["fleetcore*"]

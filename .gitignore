@@ -6,6 +6,7 @@
 !infra/certs/**/*.example
 infra/certs/ca/
 infra/certs/issued/
+infra/compose/mosquitto.acl
 
 # python
 __pycache__/

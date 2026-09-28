@@ -9,8 +9,8 @@ x-logging: &default-logging
 services:
   # ---------------------------------------------------------------------
   # profile: core — MQTT, Kafka, Flink runtime, the polyglot data stores.
-  # ingest-gateway, api and web join this profile once their code exists
-  # (sessions 2, 6, 7) — no point defining a build context with no Dockerfile.
+  # api and web join this profile once their code exists (sessions 6, 7) —
+  # no point defining a build context with no Dockerfile.
   # ---------------------------------------------------------------------
   mosquitto:
     image: eclipse-mosquitto:2.0
@@ -19,6 +19,7 @@ services:
       - "8883:8883"
     volumes:
       - ./infra/compose/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - ./infra/compose/mosquitto.acl:/mosquitto/config/mosquitto.acl:ro
       - ./infra/certs/issued:/mosquitto/certs:ro
       - mosquitto-data:/mosquitto/data
     logging: *default-logging
@@ -33,13 +34,20 @@ services:
     profiles: ["core"]
     ports:
       - "9092:9092"
+      - "29092:29092"  # EXTERNAL listener for host tools (bench-ingest, etc.) — see below
     environment:
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: broker,controller
-      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      # Two listeners on purpose: in-network services (ingest-gateway, Flink)
+      # use PLAINTEXT (advertised as kafka:9092, resolvable inside compose's
+      # network); host-run tools like services/simulator/bench_ingest.py use
+      # EXTERNAL (advertised as localhost:29092) — without this split,
+      # host clients get redirected to the unresolvable "kafka" hostname
+      # after their initial connect, once they fetch broker metadata.
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093,EXTERNAL://0.0.0.0:29092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,EXTERNAL://localhost:29092
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
       KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
@@ -68,6 +76,26 @@ services:
       interval: 15s
       timeout: 5s
       retries: 10
+
+  ingest-gateway:
+    build:
+      context: .
+      dockerfile: services/ingest-gateway/Dockerfile
+    profiles: ["core"]
+    depends_on:
+      - mosquitto
+      - kafka
+    environment:
+      MQTT_HOST: mosquitto
+      MQTT_PORT: 8883
+      MQTT_CA_CERT: infra/certs/ca/ca.crt
+      MQTT_SHARD_COUNT: ${MQTT_SHARD_COUNT:-32}
+      KAFKA_BROKERS: ${KAFKA_BROKERS:-kafka:9092}
+    volumes:
+      - ./infra/certs/ca:/app/infra/certs/ca:ro
+      - ./infra/certs/issued:/app/infra/certs/issued:ro
+    logging: *default-logging
+    restart: unless-stopped
 
   flink-jobmanager:
     image: flink:1.19-scala_2.12-java11

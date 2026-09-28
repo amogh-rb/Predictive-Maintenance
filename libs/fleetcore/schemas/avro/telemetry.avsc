@@ -1,0 +1,88 @@
+{
+  "type": "record",
+  "name": "TelemetryMessage",
+  "namespace": "com.fleetpulse.telemetry",
+  "doc": "One universal message format for every truck (PLAN §1). Registered in Apicurio as the schema for the `telemetry` Kafka topic. Mirrors fleetcore.domain.envelope; the two must be kept in sync by hand until session 9's contract test enforces it.",
+  "fields": [
+    { "name": "vin", "type": "string", "doc": "17-char VIN, ISO 3779 check digit at position 9" },
+    { "name": "msg_type", "type": { "type": "enum", "name": "MsgType", "symbols": ["FAST", "HEALTH", "EVENT"] } },
+    { "name": "seq", "type": "long" },
+    { "name": "ts", "type": { "type": "long", "logicalType": "timestamp-millis" } },
+    { "name": "fw_version", "type": "string" },
+    { "name": "schema_ver", "type": "int", "default": 1 },
+    { "name": "driver_token", "type": ["null", "string"], "default": null },
+    {
+      "name": "payload",
+      "type": [
+        {
+          "type": "record",
+          "name": "FastPayload",
+          "fields": [
+            { "name": "lat", "type": "double" },
+            { "name": "lon", "type": "double" },
+            { "name": "heading", "type": "float" },
+            { "name": "gps_hdop", "type": "float" },
+            { "name": "speed_kmh", "type": "float" },
+            { "name": "odo_km", "type": "double" },
+            { "name": "accel_long_g", "type": "float" },
+            { "name": "accel_lat_g", "type": "float" },
+            { "name": "ambient_c", "type": "float" },
+            { "name": "rpm", "type": ["null", "float"], "default": null },
+            { "name": "load_pct", "type": ["null", "float"], "default": null },
+            { "name": "throttle_pct", "type": ["null", "float"], "default": null },
+            { "name": "coolant_c", "type": ["null", "float"], "default": null },
+            { "name": "oil_c", "type": ["null", "float"], "default": null },
+            { "name": "oil_kpa", "type": ["null", "float"], "default": null },
+            { "name": "trans_c", "type": ["null", "float"], "default": null },
+            { "name": "gear", "type": ["null", "int"], "default": null },
+            { "name": "fuel_pct", "type": ["null", "float"], "default": null },
+            { "name": "fuel_rate_lph", "type": ["null", "float"], "default": null },
+            { "name": "soc_pct", "type": ["null", "float"], "default": null },
+            { "name": "hv_v", "type": ["null", "float"], "default": null },
+            { "name": "hv_a", "type": ["null", "float"], "default": null }
+          ]
+        },
+        {
+          "type": "record",
+          "name": "HealthPayload",
+          "fields": [
+            { "name": "tire_kpa", "type": { "type": "array", "items": "float" } },
+            { "name": "tire_c", "type": { "type": "array", "items": "float" } },
+            { "name": "brake_pad_pct", "type": { "type": "array", "items": "float" } },
+            { "name": "batt_12v_rest_v", "type": "float" },
+            { "name": "crank_min_v", "type": "float" },
+            { "name": "charge_v", "type": "float" },
+            { "name": "engine_hours", "type": "float" },
+            { "name": "idle_s", "type": "long" },
+            { "name": "mil_on", "type": "boolean" },
+            { "name": "active_dtc", "type": { "type": "array", "items": "string" }, "default": [] },
+            { "name": "cell_v_delta_mv", "type": ["null", "float"], "default": null },
+            { "name": "cell_temp_max_c", "type": ["null", "float"], "default": null },
+            { "name": "cell_temp_min_c", "type": ["null", "float"], "default": null },
+            { "name": "soh_pct", "type": ["null", "float"], "default": null }
+          ]
+        },
+        {
+          "type": "record",
+          "name": "EventPayload",
+          "fields": [
+            {
+              "name": "event_type",
+              "type": {
+                "type": "enum",
+                "name": "EventType",
+                "symbols": [
+                  "DTC_SET", "DTC_CLEARED", "HARSH_BRAKE", "HARSH_ACCEL", "HARSH_CORNER",
+                  "IGNITION_ON", "IGNITION_OFF", "CHARGE_START", "CHARGE_END", "OVERSPEED"
+                ]
+              }
+            },
+            { "name": "dtc", "type": ["null", "string"], "default": null },
+            { "name": "freeze_frame", "type": ["null", { "type": "map", "values": "float" }], "default": null },
+            { "name": "value", "type": ["null", "float"], "default": null }
+          ]
+        }
+      ]
+    }
+  ]
+}

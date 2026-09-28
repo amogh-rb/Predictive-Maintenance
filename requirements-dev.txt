@@ -1,0 +1,11 @@
+# Root dev environment: cert-issuing scripts, unit tests, and running
+# services/* directly from source. Install with:
+#   python -m venv .venv && .venv/Scripts/pip install -r requirements-dev.txt -e libs
+# (or .venv/bin/pip on macOS/Linux). Also installs fleetcore in editable mode via `-e libs`.
+pytest>=8.0
+pydantic>=2.6
+cryptography>=42.0
+paho-mqtt>=2.1
+confluent-kafka>=2.4
+fastavro>=1.9
+python-dotenv>=1.0
