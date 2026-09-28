@@ -63,7 +63,13 @@ class Gateway:
             return
         self._bloom.add(dedup_key)
 
-        self.producer.send_telemetry(message.vin, message.model_dump(mode="json"))
+        # tenant never rides in the wire envelope (fleetcore.domain.envelope) —
+        # it's proven once, from the mTLS-authenticated topic segment, in
+        # validate() above. Stamped onto the Kafka message here so Flink's
+        # Timescale sink and the state-writer's Postgres/Mongo writes don't
+        # have to re-derive or re-trust it downstream.
+        keyed_message = {**message.model_dump(mode="json"), "tenant": result.tenant}
+        self.producer.send_telemetry(message.vin, keyed_message)
         self.stats.forwarded += 1
 
     def run_forever(self) -> None:

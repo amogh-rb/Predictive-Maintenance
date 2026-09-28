@@ -7,7 +7,7 @@ PYTHON := $(shell if [ -x .venv/Scripts/python.exe ]; then echo .venv/Scripts/py
                    else echo python; fi)
 
 .PHONY: help setup certs up down ps logs migrate seed simulate bench-ingest burst inject-fault \
-        batch train test chaos lint
+        lake-init flink-submit batch train test chaos lint
 
 help: ## Show this help
 	@grep -hE '^[a-zA-Z_-]+:.*## ' $(MAKEFILE_LIST) | sort | awk 'BEGIN{FS=":.*## "}{printf "%-16s %s\n", $$1, $$2}'
@@ -50,6 +50,12 @@ burst: ## 3x burst load test (session 9+)
 
 inject-fault: ## Inject a planted failure, e.g. make inject-fault VIN=... TYPE=overheat
 	$(PYTHON) services/simulator/inject_fault.py --vin "$(VIN)" --type $(TYPE)
+
+lake-init: ## One-time: provision the Garage bucket/key for Flink's Parquet/JSON lake sink
+	bash infra/compose/garage-provision.sh
+
+flink-submit: ## Submit the Flink SQL pipeline (dedup, rules, CEP, sinks) as one job
+	bash stream/flink/run-jobs.sh
 
 batch: ## Run the Spark nightly feature job (session 5+)
 	@echo "TODO (session 5): Spark batch job not yet built"

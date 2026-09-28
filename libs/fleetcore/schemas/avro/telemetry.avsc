@@ -11,6 +11,7 @@
     { "name": "fw_version", "type": "string" },
     { "name": "schema_ver", "type": "int", "default": 1 },
     { "name": "driver_token", "type": ["null", "string"], "default": null },
+    { "name": "tenant", "type": "string", "doc": "Stamped by ingest-gateway from the authenticated MQTT topic segment, not sent by the truck" },
     {
       "name": "payload",
       "type": [

@@ -42,6 +42,7 @@ class ValidationResult:
     message: FastMessage | HealthMessage | EventMessage | None
     error: str | None
     detail: str = ""
+    tenant: str | None = None
 
     @property
     def ok(self) -> bool:
@@ -81,4 +82,4 @@ def validate(topic: str, raw_payload: bytes, n_shards: int) -> ValidationResult:
     except (ValidationError, KeyError) as exc:
         return _reject(DlqReason.SCHEMA_INVALID, str(exc))
 
-    return ValidationResult(message=message, error=None)
+    return ValidationResult(message=message, error=None, tenant=tenant)

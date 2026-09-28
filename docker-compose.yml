@@ -98,7 +98,8 @@ services:
     restart: unless-stopped
 
   flink-jobmanager:
-    image: flink:1.19-scala_2.12-java11
+    build:
+      context: ./infra/compose/flink
     profiles: ["core"]
     command: jobmanager
     ports:
@@ -107,6 +108,10 @@ services:
       FLINK_PROPERTIES: |
         jobmanager.rpc.address: flink-jobmanager
         jobmanager.memory.process.size: 1024m
+        s3.endpoint: http://minio:3900
+        s3.path.style.access: true
+        s3.access-key: ${GARAGE_ACCESS_KEY:-GKdeadbeefdeadbeefdeadbeef}
+        s3.secret-key: ${GARAGE_SECRET_KEY:-deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef}
     volumes:
       - ./stream/flink/sql:/opt/flink/sql:ro
     logging: *default-logging
@@ -117,7 +122,8 @@ services:
       retries: 10
 
   flink-taskmanager:
-    image: flink:1.19-scala_2.12-java11
+    build:
+      context: ./infra/compose/flink
     profiles: ["core"]
     command: taskmanager
     depends_on:
@@ -127,6 +133,10 @@ services:
         jobmanager.rpc.address: flink-jobmanager
         taskmanager.memory.process.size: 1024m
         taskmanager.numberOfTaskSlots: 2
+        s3.endpoint: http://minio:3900
+        s3.path.style.access: true
+        s3.access-key: ${GARAGE_ACCESS_KEY:-GKdeadbeefdeadbeefdeadbeef}
+        s3.secret-key: ${GARAGE_SECRET_KEY:-deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef}
     logging: *default-logging
 
   postgres:
@@ -241,6 +251,32 @@ services:
       interval: 15s
       timeout: 5s
       retries: 10
+
+  state-writer:
+    build:
+      context: .
+      dockerfile: services/state-writer/Dockerfile
+    profiles: ["core"]
+    depends_on:
+      - kafka
+      - redis
+      - mongodb
+      - postgres
+    environment:
+      KAFKA_BROKERS: ${KAFKA_BROKERS:-kafka:9092}
+      TELEMETRY_TOPIC: telemetry
+      ALERTS_TOPIC: alerts
+      REDIS_HOST: ${REDIS_HOST:-redis}
+      REDIS_PORT: ${REDIS_PORT:-6379}
+      MONGO_URI: mongodb://${MONGO_ROOT_USER:-fleetpulse}:${MONGO_ROOT_PASSWORD:-changeme}@mongodb:27017
+      MONGO_DB: ${MONGO_DB:-fleetpulse}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-fleetpulse}
+      POSTGRES_USER: ${POSTGRES_USER:-fleetpulse}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+    logging: *default-logging
+    restart: unless-stopped
 
   # ---------------------------------------------------------------------
   # profile: ai — copilot + MCP server (built in session 8)
