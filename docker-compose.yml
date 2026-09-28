@@ -135,7 +135,14 @@ services:
     environment:
       FLINK_PROPERTIES: |
         jobmanager.rpc.address: flink-jobmanager
-        taskmanager.memory.process.size: 1024m
+        # 1024m (PLAN §3's original budget) OOM'd the TaskManager under
+        # sustained make simulate traffic — the cooling rule's HOP window
+        # (30 s size / 5 s slide, so 6 overlapping windows per key) plus the
+        # dedup operator's keyed state outgrew the ~400 MB of task heap that
+        # leaves after JVM/network/managed-memory overhead. 2048m is Flink's
+        # own documented floor for anything beyond a toy job; still small
+        # next to the laptop's ~13 GB Docker budget.
+        taskmanager.memory.process.size: 2048m
         taskmanager.numberOfTaskSlots: 2
         s3.endpoint: http://minio:3900
         s3.path.style.access: true
