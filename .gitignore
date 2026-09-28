@@ -1,0 +1,42 @@
+# env / secrets
+.env
+*.pem
+*.key
+*.crt
+!infra/certs/**/*.example
+infra/certs/ca/
+infra/certs/issued/
+
+# python
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# node
+node_modules/
+dist/
+.vite/
+web/build/
+
+# data / logs
+*.log
+docs/evidence/**/*.parquet
+docs/evidence/**/*.csv
+data/
+
+# infra state
+infra/terraform/**/.terraform/
+infra/terraform/**/*.tfstate
+infra/terraform/**/*.tfstate.backup
+infra/terraform/**/.terraform.lock.hcl
+
+# os / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

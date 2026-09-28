@@ -1,0 +1,21 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate docker-compose.yml
+        run: docker compose config -q
+      - name: Lint stub
+        run: make lint
+
+  # TODO (session 9): unit + coverage (pytest/vitest), images build,
+  # integration/contract/BDD (Testcontainers, Pact, behave),
+  # Semgrep, Trivy (fs + images), pip-audit/npm audit, OWASP ZAP baseline.
