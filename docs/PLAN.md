@@ -15,7 +15,7 @@ Tick a row when its "Done when" condition is met. This is the source of truth fo
 | 7 | React UI (4 screens + audit) | [x] | Full journey in the browser (session 7's own live click-through) |
 | 8 | Copilot (LangGraph + MCP) + OTel/Prometheus/Grafana | [x] | Copilot answers; Grafana shows throughput/lag/latency |
 | 9 | Integration/contract/BDD/CI security; Helm; Terraform; SQL EXPLAIN | [x] | Evidence folder complete (see docs/evidence/{sql,helm,terraform}/) |
-| 10 | Solution document, ADRs, diagrams, README | [ ] | Doc ready |
+| 10 | Solution document, ADRs, diagrams, README | [x] | Doc ready |
 
 ---
 
@@ -255,7 +255,7 @@ The "You" column is manual work done between sessions, often while the limit res
 | **9** | Thu AM | Integration (Testcontainers), Pact, behave BDD, CI with Semgrep/Trivy/ZAP; Helm chart + kind; Terraform; EXPLAIN before/after for 3 queries; UI fixes from your list | Run burst + chaos scripts and k6; save outputs to `docs/evidence/`; verify CI is green | Evidence folder complete |
 | **10** | extra buffer (deadline pushed to Thu 1 Oct 20:00, >48h slack found in session 10) | Chaos evidence completeness — **done**: added `chaos_broker_test.py` (3-broker chaos profile, real producer/consumer, acks=all) and `chaos_gateway_test.py` (scales ingest-gateway to 2 copies); found and fixed a real bug along the way — the gateway's MQTT client_id was hardcoded, so scaling would have silently kicked the first copy instead of load-sharing; both new chaos scripts run clean, zero loss, evidence saved | Still open: run the overnight `make simulate` soak and save the summary to `docs/evidence/load/` | `docs/evidence/chaos/` has all 3 kill scenarios with 0-loss reconciliation — done; `docs/evidence/load/` soak output — pending (user running it tonight) |
 | **11** | extra buffer — **done** | Depth: failures 6-8 (tyre slow leak, transmission, EV HV battery) promoted from Should to built — simulator signals (`signals.py`), 3 new real-time Flink rules all confirmed firing live (tyre, EV battery, transmission — the last after the HOP-window fix below), Spark feature columns (slip, tyre min, cell temp + matching slopes), sklearn models trained + scored for all 8 types, `docs/evidence/ml/report.md` regenerated. Also fixed 2 real bugs found along the way: `alert_misfire_mil` was flagging any active DTC as "misfire" regardless of which code; EV cell imbalance was gated on the wrong failure type (12V battery, not EV HV battery). | Spot-check a few alerts/predictions for the new failure types | Failures 6-8 predict via ML and alert live — all verified end-to-end (see PROGRESS sessions 10b/10c) |
-| **12** | Thu PM (by 16:00) | Solution Document drafted from PLAN/PROGRESS/evidence; 5 ADRs; STRIDE; C4 and sequence diagrams (Mermaid); README | Add screenshots and video timestamps, proofread, export PDF | Doc ready |
+| **12** | ✅ Thu PM (by 16:00) | Solution Document drafted from PLAN/PROGRESS/evidence; 5 ADRs; STRIDE; C4 and sequence diagrams (Mermaid); README | Add screenshots and video timestamps, proofread, export PDF | Doc ready |
 | — | Thu 16:00–19:45 | *(buffer; only small fixes)* | Record and upload the video; tag `v1.0-submission`; submit | Submitted |
 
 ### 6.4 If usage runs out early
