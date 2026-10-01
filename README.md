@@ -3,7 +3,7 @@
 Predictive maintenance POC for truck fleets: *which trucks will break down soon, why, and what should I do?*
 Built for the Talenciaglobal/SRM "Connected Vehicle Intelligence" hackathon (solo).
 
-**Start here:** [Solution document](docs/solution/SOLUTION.md), [ADRs](docs/adr/), [C4 and sequence diagrams](docs/diagrams/c4-and-sequences.md), [ER diagram](docs/diagrams/er-diagram.md), [evidence](docs/evidence/).
+**Start here:** [Solution document](docs/solution/FleetPulse_Solution_Document.docx), [ADRs](docs/adr/), [C4 and sequence diagrams](docs/diagrams/c4-and-sequences.md), [ER diagram](docs/diagrams/er-diagram.md), [evidence](docs/evidence/).
 Plan and session log: [docs/PLAN.md](docs/PLAN.md), [docs/PROGRESS.md](docs/PROGRESS.md).
 
 ## What it does
