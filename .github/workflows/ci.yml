@@ -37,7 +37,11 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-      - run: pip install -q -r requirements-dev.txt -r services/ml/requirements.txt -e libs
+      - run: >
+          pip install -q -r requirements-dev.txt -r services/ml/requirements.txt
+          -r services/api/requirements.txt -r services/copilot/requirements.txt
+          -r services/ingest-gateway/requirements.txt -r services/mcp-server/requirements.txt
+          -r services/state-writer/requirements.txt -e libs
       - run: pip install -q coverage
       - name: "Unit tests with coverage (PLAN §5 target: >=80% on fleetcore/ingest-gateway/api)"
         run: |
@@ -102,18 +106,13 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
       - run: pip install -q -r requirements-dev.txt -r services/ml/requirements.txt -e libs
+      # Tools run directly (not via marketplace actions, whose pinned tags can disappear and fail the job
+      # before any step runs). Both are report-only: they never gate the hackathon build.
       - name: Semgrep (auto config)
-        uses: semgrep/semgrep-action@v1
-        with:
-          config: auto
-        continue-on-error: true
+        run: pip install -q semgrep && semgrep scan --config auto --metrics off . || true
       - name: Trivy filesystem scan
-        uses: aquasecurity/trivy-action@0.24.0
-        with:
-          scan-type: fs
-          scan-ref: .
-          severity: CRITICAL,HIGH
-          exit-code: "0" # report, don't gate the hackathon build on transitive CVEs
+        run: |
+          docker run --rm -v "$PWD:/src" aquasec/trivy:latest fs --severity CRITICAL,HIGH --exit-code 0 /src || true
       - name: pip-audit
         run: pip install -q pip-audit && pip-audit -r requirements-dev.txt -r services/ml/requirements.txt || true
       - uses: actions/setup-node@v4
@@ -132,12 +131,9 @@ jobs:
       - uses: actions/checkout@v4
       - name: Build ${{ matrix.service }} image
         run: docker build -f services/${{ matrix.service }}/Dockerfile -t fleetpulse-${{ matrix.service }}:ci .
-      - name: Trivy image scan
-        uses: aquasecurity/trivy-action@0.24.0
-        with:
-          image-ref: fleetpulse-${{ matrix.service }}:ci
-          severity: CRITICAL,HIGH
-          exit-code: "0"
+      - name: Trivy image scan (report-only)
+        run: |
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:latest image             --severity CRITICAL,HIGH --exit-code 0 fleetpulse-${{ matrix.service }}:ci || true
 
   # ---------------------------------------------------------------------
   # BDD + OWASP ZAP baseline against the REAL, full `core` compose stack
