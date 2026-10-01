@@ -5,7 +5,7 @@ Read this (not chat history) at the start of every new session.
 
 ## Session 12: solution document — 2026-10-01
 
-Wrote `docs/solution/FleetPulse_Solution_Document.docx` (incl. STRIDE, measured-results table, deviations, known issues), ADRs 1-6 in `docs/adr/`, C4 + 3 sequence diagrams in `docs/diagrams/c4-and-sequences.md`, and a real `README.md`. Claims are tied to `docs/evidence/`; the doc states what was not achieved (100K/s ingest never measured, ~1K/s simulator-bound; no saved 1 h soak; ZAP not run; coverage 79% vs 80% target; gateway-kill/burst have ~1-2% delta, not zero loss).
+Wrote `docs/solution/FleetPulse_Solution_Document_v2.docx` (incl. STRIDE, measured-results table, deviations, known issues), ADRs 1-6 in `docs/adr/`, C4 + 3 sequence diagrams in `docs/diagrams/c4-and-sequences.md`, and a real `README.md`. Claims are tied to `docs/evidence/`; the doc states what was not achieved (100K/s ingest never measured, ~1K/s simulator-bound; no saved 1 h soak; ZAP not run; coverage 79% vs 80% target; gateway-kill/burst have ~1-2% delta, not zero loss).
 **Manual, still open:** screenshots, video timestamps, proofread, PDF export, save the soak output to `docs/evidence/load/` if it exists, tag `v1.0-submission`, push (not pushed yet). Unverified in the doc: pgcrypto column encryption (only the extension is confirmed).
 
 ---
