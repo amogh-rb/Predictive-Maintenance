@@ -19,6 +19,8 @@ def step_pick_vehicle(context):
 
 def _delete_work_order(work_order_id: str) -> None:
     with psycopg.connect(**PG, autocommit=True) as conn:
+        # approving also books a depot bay, which references the work order
+        conn.execute("DELETE FROM depot_booking WHERE work_order_id = %s", (work_order_id,))
         conn.execute("DELETE FROM work_order WHERE id = %s", (work_order_id,))
 
 

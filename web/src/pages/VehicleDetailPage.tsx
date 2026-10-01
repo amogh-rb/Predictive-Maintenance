@@ -48,7 +48,7 @@ export default function VehicleDetailPage() {
     setBusy(true);
     try {
       const res = await api.post<ScheduleResult>(`/v1/maintenance/schedule/${id}`);
-      setActionMsg(`Booked at ${res.depot_city} depot — see Maintenance Scheduled.`);
+      setActionMsg(`Booked at ${res.depot_city} depot — see Maintenance.`);
     } catch (err) {
       setActionMsg(err instanceof ApiError ? err.detail : String(err));
     } finally {

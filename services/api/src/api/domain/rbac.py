@@ -20,6 +20,7 @@ class Action(str, Enum):
     VIEW_SCHEDULED = "view_scheduled"
     SCHEDULE_MAINTENANCE = "schedule_maintenance"
     COMPLETE_MAINTENANCE = "complete_maintenance"
+    START_MAINTENANCE = "start_maintenance"
 
 
 _ROLE_ACTIONS: dict[str, set[Action]] = {
@@ -27,17 +28,17 @@ _ROLE_ACTIONS: dict[str, set[Action]] = {
         Action.VIEW_AT_RISK, Action.VIEW_VEHICLE, Action.VIEW_ALERTS,
         Action.APPROVE_WORK_ORDER,
         Action.VIEW_AUDIT_LOG, Action.ERASE_DRIVER, Action.VIEW_ANALYTICS,
-        Action.VIEW_SCHEDULED, Action.SCHEDULE_MAINTENANCE, Action.COMPLETE_MAINTENANCE,
+        Action.VIEW_SCHEDULED, Action.SCHEDULE_MAINTENANCE, Action.COMPLETE_MAINTENANCE, Action.START_MAINTENANCE,
     },
     "fleet_manager": {
         Action.VIEW_AT_RISK, Action.VIEW_VEHICLE, Action.VIEW_ALERTS,
         Action.APPROVE_WORK_ORDER,
         Action.VIEW_ANALYTICS,
-        Action.VIEW_SCHEDULED, Action.SCHEDULE_MAINTENANCE, Action.COMPLETE_MAINTENANCE,
+        Action.VIEW_SCHEDULED, Action.SCHEDULE_MAINTENANCE, Action.COMPLETE_MAINTENANCE, Action.START_MAINTENANCE,
     },
     "technician": {
         Action.VIEW_VEHICLE, Action.VIEW_ALERTS,
-        Action.VIEW_SCHEDULED, Action.COMPLETE_MAINTENANCE,
+        Action.VIEW_SCHEDULED, Action.COMPLETE_MAINTENANCE, Action.START_MAINTENANCE,
     },
     "auditor": {
         Action.VIEW_AT_RISK, Action.VIEW_VEHICLE, Action.VIEW_ALERTS, Action.VIEW_AUDIT_LOG,

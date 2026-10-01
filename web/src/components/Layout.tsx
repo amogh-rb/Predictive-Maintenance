@@ -4,7 +4,7 @@ import { AlertIcon, ChartIcon, ChatIcon, ListIcon, TruckIcon, WrenchIcon } from 
 
 const NAV = [
   { to: "/at-risk", label: "At-Risk Fleet", icon: <TruckIcon width={19} height={19} /> },
-  { to: "/maintenance", label: "Maintenance Scheduled", icon: <WrenchIcon width={19} height={19} /> },
+  { to: "/maintenance", label: "Maintenance", icon: <WrenchIcon width={19} height={19} /> },
   { to: "/alerts", label: "Live Alerts", icon: <AlertIcon width={19} height={19} /> },
   { to: "/copilot", label: "Copilot", icon: <ChatIcon width={19} height={19} /> },
   { to: "/analytics", label: "Analytics", icon: <ChartIcon width={19} height={19} /> },

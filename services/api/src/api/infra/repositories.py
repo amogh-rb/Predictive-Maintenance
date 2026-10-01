@@ -150,30 +150,53 @@ def has_open_booking(session: Session, vehicle_id: str) -> bool:
     row = session.execute(
         text("""
             SELECT 1 FROM depot_booking b JOIN work_order wo ON wo.id = b.work_order_id
-            WHERE b.vehicle_id = :vid AND wo.status = 'approved' LIMIT 1
+            WHERE b.vehicle_id = :vid AND wo.status IN ('approved', 'in_service') LIMIT 1
         """),
         {"vid": vehicle_id},
     ).first()
     return row is not None
 
 
-def list_scheduled(session: Session, limit: int) -> list[dict[str, Any]]:
-    """Vehicles booked into a depot whose work order isn't serviced yet. Risk/failure type come from
-    the vehicle's latest prediction, so the row still says why it was booked."""
+_LATEST_PREDICTION = """
+    LEFT JOIN LATERAL (
+        SELECT failure_type, risk_score, lead_days FROM prediction p
+        WHERE p.vehicle_id = v.id ORDER BY p.created_at DESC, p.risk_score DESC LIMIT 1
+    ) p ON true
+"""
+
+
+def list_scheduled(session: Session, limit: int, statuses: tuple[str, ...] = ("approved",)) -> list[dict[str, Any]]:
+    """Vehicles booked into a depot whose work order is in one of `statuses` (default: booked, not yet
+    started). Risk/failure type come from the vehicle's latest prediction, so the row still says why."""
     rows = session.execute(
-        text("""
-            SELECT b.id AS booking_id, wo.id AS work_order_id, v.id AS vehicle_id, v.vin,
+        text(f"""
+            SELECT b.id AS booking_id, wo.id AS work_order_id, v.id AS vehicle_id, v.vin, wo.status,
                    p.failure_type, p.risk_score, p.lead_days,
-                   d.name AS depot_name, d.city AS depot_city, b.booked_from, b.booked_until
+                   d.name AS depot_name, d.city AS depot_city, b.booked_from, b.booked_until, wo.started_at
             FROM depot_booking b
-            JOIN work_order wo ON wo.id = b.work_order_id AND wo.status = 'approved'
+            JOIN work_order wo ON wo.id = b.work_order_id AND wo.status::text = ANY(:statuses)
             JOIN vehicle v ON v.id = b.vehicle_id
             JOIN depot d ON d.id = b.depot_id
-            LEFT JOIN LATERAL (
-                SELECT failure_type, risk_score, lead_days FROM prediction p
-                WHERE p.vehicle_id = v.id ORDER BY p.created_at DESC, p.risk_score DESC LIMIT 1
-            ) p ON true
-            ORDER BY b.booked_from DESC
+            {_LATEST_PREDICTION}
+            ORDER BY COALESCE(wo.started_at, b.booked_from) DESC
+            LIMIT :limit
+        """),
+        {"limit": limit, "statuses": list(statuses)},
+    ).mappings().all()
+    return [dict(r) for r in rows]
+
+
+def list_pending_proposals(session: Session, limit: int) -> list[dict[str, Any]]:
+    """Work orders waiting for a human decision (the copilot's proposals), oldest first."""
+    rows = session.execute(
+        text(f"""
+            SELECT wo.id AS work_order_id, v.id AS vehicle_id, v.vin, wo.proposed_by, wo.created_at,
+                   p.failure_type, p.risk_score, p.lead_days
+            FROM work_order wo
+            JOIN vehicle v ON v.id = wo.vehicle_id
+            {_LATEST_PREDICTION}
+            WHERE wo.status = 'proposed'
+            ORDER BY wo.created_at
             LIMIT :limit
         """),
         {"limit": limit},
@@ -181,12 +204,64 @@ def list_scheduled(session: Session, limit: int) -> list[dict[str, Any]]:
     return [dict(r) for r in rows]
 
 
+def list_recent_closed(session: Session, limit: int, days: int = 7) -> list[dict[str, Any]]:
+    """Serviced or rejected work orders from the last `days` days, newest first."""
+    rows = session.execute(
+        text(f"""
+            SELECT wo.id AS work_order_id, v.id AS vehicle_id, v.vin, wo.status,
+                   COALESCE(wo.completed_at, wo.rejected_at) AS closed_at,
+                   p.failure_type, d.city AS depot_city
+            FROM work_order wo
+            JOIN vehicle v ON v.id = wo.vehicle_id
+            LEFT JOIN depot_booking b ON b.work_order_id = wo.id
+            LEFT JOIN depot d ON d.id = b.depot_id
+            {_LATEST_PREDICTION}
+            WHERE wo.status IN ('completed', 'rejected')
+              AND COALESCE(wo.completed_at, wo.rejected_at) > now() - make_interval(days => :days)
+            ORDER BY closed_at DESC
+            LIMIT :limit
+        """),
+        {"limit": limit, "days": days},
+    ).mappings().all()
+    return [dict(r) for r in rows]
+
+
+def get_work_order(session: Session, work_order_id: str) -> dict[str, Any] | None:
+    row = session.execute(
+        text("SELECT id, vehicle_id, status FROM work_order WHERE id = :id"), {"id": work_order_id}
+    ).mappings().first()
+    return dict(row) if row else None
+
+
+def reject_work_order(session: Session, work_order_id: str) -> bool:
+    row = session.execute(
+        text("""
+            UPDATE work_order SET status = 'rejected', rejected_at = now()
+            WHERE id = :id AND status = 'proposed' RETURNING id
+        """),
+        {"id": work_order_id},
+    ).first()
+    return row is not None
+
+
+def start_work_order(session: Session, work_order_id: str) -> bool:
+    """Booked -> in service (the truck is at the depot being worked on). The bay stays held."""
+    row = session.execute(
+        text("""
+            UPDATE work_order SET status = 'in_service', started_at = now()
+            WHERE id = :id AND status = 'approved' RETURNING id
+        """),
+        {"id": work_order_id},
+    ).first()
+    return row is not None
+
+
 def complete_work_order(session: Session, work_order_id: str) -> bool:
     """Marks the work order serviced and frees the depot bay straight away."""
     row = session.execute(
         text("""
             UPDATE work_order SET status = 'completed', completed_at = now()
-            WHERE id = :id AND status = 'approved' RETURNING id
+            WHERE id = :id AND status IN ('approved', 'in_service') RETURNING id
         """),
         {"id": work_order_id},
     ).first()

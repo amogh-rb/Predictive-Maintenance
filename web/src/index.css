@@ -457,3 +457,5 @@ button.secondary:hover:not(:disabled) { background: var(--panel-hover); filter: 
   margin-bottom: 16px;
   font-size: 13.5px;
 }
+
+.section-title { margin: 28px 0 2px; font-size: 1.05rem; display: flex; align-items: center; gap: 8px; }

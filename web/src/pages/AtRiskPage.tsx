@@ -46,7 +46,7 @@ export default function AtRiskPage() {
     try {
       const res = await api.post<ScheduleResult>(`/v1/maintenance/schedule/${item.vehicle_id}`);
       setItems((prev) => prev.filter((i) => i.vehicle_id !== item.vehicle_id));
-      setMessage(`${item.vin} booked at ${res.depot_city} depot — moved to Maintenance Scheduled.`);
+      setMessage(`${item.vin} booked at ${res.depot_city} depot — moved to Maintenance.`);
     } catch (err) {
       setError(err instanceof ApiError ? err.detail : String(err));
     } finally {

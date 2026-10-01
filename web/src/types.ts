@@ -87,3 +87,35 @@ export interface ScheduleResult {
   depot_city: string;
   hours: number;
 }
+
+export interface PendingProposal {
+  work_order_id: string;
+  vehicle_id: string;
+  vin: string;
+  proposed_by: string;
+  created_at: string;
+  failure_type: string | null;
+  risk_score: number | null;
+  lead_days: number | null;
+}
+
+export interface InServiceItem extends ScheduledItem {
+  started_at: string | null;
+}
+
+export interface ClosedItem {
+  work_order_id: string;
+  vehicle_id: string;
+  vin: string;
+  status: "completed" | "rejected";
+  closed_at: string;
+  failure_type: string | null;
+  depot_city: string | null;
+}
+
+export interface MaintenanceBoard {
+  pending: PendingProposal[];
+  scheduled: ScheduledItem[];
+  in_service: InServiceItem[];
+  recent: ClosedItem[];
+}

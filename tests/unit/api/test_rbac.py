@@ -47,3 +47,8 @@ def test_maintenance_scheduled_permissions():
     assert can(["auditor"], Action.VIEW_SCHEDULED)
     assert not can(["auditor"], Action.SCHEDULE_MAINTENANCE)
     assert not can(["auditor"], Action.COMPLETE_MAINTENANCE)
+
+
+def test_start_maintenance_is_for_admin_manager_and_technician_only():
+    assert all(can([r], Action.START_MAINTENANCE) for r in ("fleet_admin", "fleet_manager", "technician"))
+    assert not can(["auditor"], Action.START_MAINTENANCE)

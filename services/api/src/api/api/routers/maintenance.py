@@ -22,6 +22,16 @@ def list_scheduled(
     return work_orders_app.list_scheduled(session, limit=limit)
 
 
+@router.get("/status")
+def status_board(
+    limit: int = Query(200, ge=1, le=500),
+    session: Session = Depends(get_session),
+    _rl: None = Depends(rate_limited),
+    _user: CurrentUser = Depends(require_action(rbac.Action.VIEW_SCHEDULED)),
+):
+    return work_orders_app.status_board(session, limit=limit)
+
+
 @router.post("/schedule/{vehicle_id}", status_code=status.HTTP_201_CREATED)
 def schedule(
     vehicle_id: str,
@@ -43,6 +53,18 @@ def schedule(
     return booking
 
 
+@router.post("/{work_order_id}/start")
+def start(
+    work_order_id: str,
+    session: Session = Depends(get_session),
+    _rl: None = Depends(rate_limited),
+    _user: CurrentUser = Depends(require_action(rbac.Action.START_MAINTENANCE)),
+):
+    if not work_orders_app.start(session, work_order_id):
+        raise HTTPException(status.HTTP_409_CONFLICT, "work order not found or not waiting to start")
+    return {"work_order_id": work_order_id, "status": "in_service"}
+
+
 @router.post("/{work_order_id}/complete")
 def complete(
     work_order_id: str,
@@ -51,5 +73,5 @@ def complete(
     _user: CurrentUser = Depends(require_action(rbac.Action.COMPLETE_MAINTENANCE)),
 ):
     if not work_orders_app.complete(session, work_order_id):
-        raise HTTPException(status.HTTP_409_CONFLICT, "work order not found or not scheduled")
+        raise HTTPException(status.HTTP_409_CONFLICT, "work order not found or not in progress")
     return {"work_order_id": work_order_id, "status": "completed"}
