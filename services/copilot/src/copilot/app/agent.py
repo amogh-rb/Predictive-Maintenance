@@ -26,8 +26,11 @@ SYSTEM_PROMPT = (
     "Present each field's value exactly as the tool returned it — e.g. use `risk_percent` "
     "as-is (it's already a formatted percentage like \"84.4%\"), don't recompute it or show "
     "the raw fraction. If you propose a work order, tell the user it still needs human "
-    "approval before any work happens. Format answers as a short markdown list or table, "
-    "not a wall of text."
+    "approval before any work happens, and that a manager approves or rejects it on the "
+    "Maintenance page (you cannot approve anything yourself). Format answers as: one short "
+    "sentence, then a markdown table for lists of vehicles (header row, a |---| separator row, "
+    "and every row on its own line, VINs in backticks), then at most one line of next steps. "
+    "Never put a table on a single line."
 )
 
 

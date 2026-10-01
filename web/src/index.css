@@ -423,7 +423,7 @@ button.secondary:hover:not(:disabled) { background: var(--panel-hover); filter: 
 
 .chat-log { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; flex: 1; overflow-y: auto; padding-right: 4px; }
 
-.chat-msg { padding: 10px 14px; border-radius: 12px; max-width: 80%; font-size: 14px; }
+.chat-msg { padding: 10px 14px; border-radius: 12px; max-width: 90%; font-size: 14px; }
 .chat-msg.user { align-self: flex-end; background: var(--accent); color: #06101f; white-space: pre-wrap; border-bottom-right-radius: 3px; }
 .chat-msg.assistant { align-self: flex-start; background: var(--panel); border: 1px solid var(--border-soft); border-bottom-left-radius: 3px; }
 
@@ -432,8 +432,11 @@ button.secondary:hover:not(:disabled) { background: var(--panel-hover); filter: 
 .chat-msg.assistant ul, .chat-msg.assistant ol { margin: 4px 0 8px; padding-left: 20px; }
 .chat-msg.assistant li { margin-bottom: 2px; }
 .chat-msg.assistant code { background: var(--bg); border-radius: 4px; padding: 1px 5px; font-size: 13px; }
-.chat-msg.assistant table { border-collapse: collapse; font-size: 13px; }
-.chat-msg.assistant th, .chat-msg.assistant td { border: 1px solid var(--border-soft); padding: 4px 8px; }
+.chat-msg.assistant { overflow-x: auto; }
+.chat-msg.assistant table { border-collapse: collapse; font-size: 13px; width: 100%; margin: 6px 0; }
+.chat-msg.assistant th { text-align: left; background: var(--bg-elevated); color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.03em; }
+.chat-msg.assistant th, .chat-msg.assistant td { border: 1px solid var(--border-soft); padding: 6px 10px; white-space: nowrap; }
+.chat-msg.assistant tbody tr:nth-child(even) { background: rgba(255, 255, 255, 0.025); }
 
 .chat-input-row { display: flex; gap: 8px; }
 .chat-input-row input { flex: 1; }

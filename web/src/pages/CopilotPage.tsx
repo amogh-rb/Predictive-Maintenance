@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { api, ApiError } from "../lib/api";
 import PageHeader from "../components/PageHeader";
 import { ChatIcon } from "../components/icons";
@@ -85,7 +86,7 @@ export default function CopilotPage() {
                 user's own typed text never is, so only the assistant side is
                 rendered through react-markdown; the user's text stays plain,
                 which also avoids interpreting anything they type as markup. */}
-            {m.role === "assistant" ? <ReactMarkdown>{m.text}</ReactMarkdown> : m.text}
+            {m.role === "assistant" ? <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.text}</ReactMarkdown> : m.text}
           </div>
         ))}
       </div>
