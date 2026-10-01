@@ -13,12 +13,14 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from api.api.routers import alerts, audit, drivers, vehicles, work_orders, ws
+from api.api.routers import alerts, analytics, audit, copilot, drivers, maintenance, vehicles, work_orders, ws
 from api.infra import db
 from api.infra import repositories as repo
+from api.infra.otel import instrument
 from api.infra.ws_broadcaster import broadcaster
 
 logger = logging.getLogger("api")
@@ -77,6 +79,18 @@ async def _lifespan(app: FastAPI):
 def create_app() -> FastAPI:
     app = FastAPI(title="FleetPulse API", version="1.0.0", lifespan=_lifespan)
     app.add_middleware(AuditMiddleware)
+    # The web app (session 7) is a separate Vite dev server on :5173 talking
+    # to this API on :8000 — a real cross-origin browser request, not a
+    # same-origin one, so it needs CORS. Origins are the compose/dev
+    # defaults; a production deploy would serve web from behind the same
+    # ingress and could drop this, but that's outside this POC's scope.
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["http://localhost:5173", "http://localhost:8080"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
     @app.exception_handler(HTTPException)
     async def _http_exception_handler(request: Request, exc: HTTPException):
@@ -93,10 +107,14 @@ def create_app() -> FastAPI:
     app.include_router(vehicles.router)
     app.include_router(alerts.router)
     app.include_router(work_orders.router)
+    app.include_router(maintenance.router)
     app.include_router(drivers.router)
     app.include_router(audit.router)
+    app.include_router(copilot.router)
+    app.include_router(analytics.router)
     app.include_router(ws.router)
 
+    instrument(app)
     return app
 
 

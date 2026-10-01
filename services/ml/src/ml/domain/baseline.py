@@ -15,6 +15,11 @@ COOLANT_ALERT_C = 110.0
 OIL_KPA_ALERT = 40.0
 CHARGE_V_ALERT = 12.5
 BRAKE_PAD_ALERT_PCT = 8.0
+# 6-8 (session 10b) — same cutoffs as the new real-time rules
+# (stream/flink/sql/03_realtime_rules.sql).
+TRANS_C_ALERT = 130.0
+TIRE_KPA_ALERT = 550.0
+CELL_TEMP_ALERT_C = 60.0
 
 
 def predict(row: dict) -> int:
@@ -32,5 +37,14 @@ def predict(row: dict) -> int:
         return 1
     min_pad = row.get("min_brake_pad_pct")
     if min_pad is not None and min_pad < BRAKE_PAD_ALERT_PCT:
+        return 1
+    max_trans = row.get("max_trans_c")
+    if max_trans is not None and max_trans > TRANS_C_ALERT:
+        return 1
+    min_tire = row.get("min_tire_kpa")
+    if min_tire is not None and min_tire < TIRE_KPA_ALERT:
+        return 1
+    max_cell_temp = row.get("max_cell_temp_c")
+    if max_cell_temp is not None and max_cell_temp > CELL_TEMP_ALERT_C:
         return 1
     return 0

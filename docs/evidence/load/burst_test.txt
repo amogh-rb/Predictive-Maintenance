@@ -1,0 +1,27 @@
+2026-09-29 13:48:21,252 INFO simulating 500 active vehicles (100000 in fleet, 4279 with planted failures) at ~500 events/s
+2026-09-29 13:48:30,699 INFO tick 10: 5549 messages sent so far
+2026-09-29 13:48:40,648 INFO tick 20: 10637 messages sent so far
+2026-09-29 13:48:50,650 INFO tick 30: 15715 messages sent so far
+2026-09-29 13:48:53,672 INFO simulating 1500 active vehicles (100000 in fleet, 4279 with planted failures) at ~1500 events/s
+2026-09-29 13:49:03,808 INFO tick 10: 32363 messages sent so far
+2026-09-29 13:49:13,801 INFO tick 20: 47651 messages sent so far
+2026-09-29 13:49:23,899 INFO tick 30: 62986 messages sent so far
+2026-09-29 13:49:33,803 INFO tick 40: 78232 messages sent so far
+telemetry offset before: 4187566
+--- baseline: 500 events/s for 30s ---
+--- burst: 1500 events/s (3x) for 45s ---
+
+simulator sent (baseline+burst): 85936 messages
+delivered to Kafka telemetry topic: 84244 messages (loss: 1692, 1.97% - a small delta of a few messages can come from in-flight QoS-1 redelivery still settling)
+
+--- consumer lag: state-writer group, immediately after the burst ---
+lag right after burst (48s burst window): 24039
+--- polling for recovery (up to 90s) ---
+  t+5s: lag=20679
+  t+10s: lag=16949
+  t+15s: lag=13032
+  t+20s: lag=9516
+  t+25s: lag=5879
+  t+31s: lag=1931
+  t+36s: lag=0
+lag recovered to 0 in 36s

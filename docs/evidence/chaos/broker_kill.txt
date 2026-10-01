@@ -1,0 +1,29 @@
+%6|1790685029.676|FAIL|rdkafka#producer-1| [thrd:localhost:29093/bootstrap]: localhost:29093/bootstrap: Disconnected: connection closed by peer: POLLHUP (after 26ms in state APIVERSION_QUERY)
+%6|1790685029.701|FAIL|rdkafka#producer-1| [thrd:localhost:29094/bootstrap]: localhost:29094/bootstrap: Disconnected: connection closed by peer: POLLHUP (after 1ms in state APIVERSION_QUERY)
+%6|1790685029.762|FAIL|rdkafka#producer-1| [thrd:localhost:29095/bootstrap]: localhost:29095/bootstrap: Disconnected: connection closed by peer: POLLHUP (after 1ms in state APIVERSION_QUERY)
+%6|1790685029.910|FAIL|rdkafka#producer-1| [thrd:localhost:29094/bootstrap]: localhost:29094/bootstrap: Disconnected: connection closed by peer: POLLHUP (after 11ms in state APIVERSION_QUERY, 1 identical error(s) suppressed)
+%6|1790685029.946|FAIL|rdkafka#producer-1| [thrd:localhost:29093/bootstrap]: localhost:29093/bootstrap: Disconnected: connection closed by peer: POLLHUP (after 0ms in state APIVERSION_QUERY, 1 identical error(s) suppressed)
+%6|1790685030.152|FAIL|rdkafka#producer-1| [thrd:localhost:29095/bootstrap]: localhost:29095/bootstrap: Disconnected: connection closed by peer: POLLHUP (after 115ms in state APIVERSION_QUERY, 1 identical error(s) suppressed)
+%4|1790685052.939|GETPID|rdkafka#producer-2| [thrd:main]: Failed to acquire idempotence PID from broker localhost:29095/3: Broker: Coordinator load in progress: retrying
+%4|1790685069.709|FAIL|rdkafka#producer-2| [thrd:localhost:29094/2]: localhost:29094/2: Disconnected: connection closed by peer: POLLHUP (after 16246ms in state UP)
+%6|1790685070.120|FAIL|rdkafka#producer-2| [thrd:localhost:29094/2]: localhost:29094/2: Disconnected: connection closed by peer: POLLHUP (after 410ms in state APIVERSION_QUERY, 1 identical error(s) suppressed)
+%3|1790685078.354|FAIL|rdkafka#producer-2| [thrd:localhost:29094/2]: localhost:29094/2: Connect to ipv4#127.0.0.1:29094 failed: Unknown error (after 2030ms in state CONNECT)
+%3|1790685083.805|FAIL|rdkafka#producer-2| [thrd:localhost:29094/2]: localhost:29094/2: Connect to ipv6#[::1]:29094 failed: Unknown error (after 2042ms in state CONNECT)
+%3|1790685095.849|FAIL|rdkafka#producer-2| [thrd:localhost:29094/2]: localhost:29094/2: Connect to ipv4#127.0.0.1:29094 failed: Unknown error (after 2038ms in state CONNECT)
+%6|1790685103.812|FAIL|rdkafka#producer-2| [thrd:localhost:29094/2]: localhost:29094/2: Disconnected: connection closed by peer: POLLHUP (after 1ms in state APIVERSION_QUERY)
+%6|1790685114.056|FAIL|rdkafka#consumer-3| [thrd:localhost:29094/bootstrap]: localhost:29094/bootstrap: Disconnected: connection closed by peer: POLLHUP (after 9ms in state APIVERSION_QUERY)
+--- creating topic chaos-broker-test (RF=3, min.insync.replicas=2) ---
+--- producing 200/s for 60s (broker killed at t+15s) ---
+
+--- killing fleetpulse-kafka-chaos-2-1 (simulating a broker crash mid-load) ---
+--- restarting fleetpulse-kafka-chaos-2-1 ---
+--- broker restarted; giving it time to rejoin the ISR ---
+
+--- flushing producer (this blocks until every in-flight send is acked or times out) ---
+
+attempted 12000, acked 12000, failed 0, still unflushed 0
+--- consuming the full topic back to verify by key ---
+landed in topic: 12000 / 12000 acked messages
+--- cleanup: deleting test topic ---
+
+ZERO LOSS confirmed: every acked message survived the broker kill/restart (Kafka replication + acks=all did its job).

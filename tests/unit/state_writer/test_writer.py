@@ -1,8 +1,27 @@
+import pytest
+
 from state_writer.app.writer import StateWriter
+from state_writer.domain.watchdog import ConsumerStalled
 
 
 class FakeConsumer:
     def poll(self, timeout=1.0):
+        return None
+
+
+class FakeConsumerWithAssignment:
+    """Unlike FakeConsumer, implements has_assignment() — StateWriter only
+    turns on stall detection when the consumer supports it."""
+
+    def __init__(self, assigned_sequence):
+        self._assigned_sequence = iter(assigned_sequence)
+        self.polls = 0
+
+    def has_assignment(self):
+        return next(self._assigned_sequence)
+
+    def poll(self, timeout=1.0):
+        self.polls += 1
         return None
 
 
@@ -88,3 +107,21 @@ def test_alert_for_unseeded_vin_is_counted_not_inserted():
     writer._handle_alert(_alert(vin="UNKNOWN"))
     assert alert.inserted == []
     assert writer.stats.alerts_unknown_vin == 1
+
+
+def test_run_forever_skips_stall_detection_for_a_consumer_without_it():
+    # FakeConsumer (used everywhere above) has no has_assignment() — must
+    # not blow up just because stall detection can't apply to it.
+    writer, *_ = _make_writer()
+    writer.stop()
+    writer.run_forever()  # would raise AttributeError if this weren't guarded
+
+
+def test_run_forever_exits_when_consumer_group_stays_unassigned():
+    consumer = FakeConsumerWithAssignment([False, False, False])
+    writer = StateWriter(
+        consumer, FakeLatestStore(), FakeTwinStore(), FakeAlertStore(set()),
+        "telemetry", "alerts", stall_timeout_s=0.0,
+    )
+    with pytest.raises(ConsumerStalled):
+        writer.run_forever()

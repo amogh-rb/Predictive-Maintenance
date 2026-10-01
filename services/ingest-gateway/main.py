@@ -10,6 +10,7 @@ from __future__ import annotations
 import logging
 import os
 import signal
+import socket
 import sys
 import threading
 from pathlib import Path
@@ -40,6 +41,11 @@ def main() -> None:
     subscriber = GatewaySubscriber(
         host=mqtt_host, port=mqtt_port, ca_cert=ca_cert,
         client_cert=gateway_cert, client_key=gateway_key, sink=gateway.sink,
+        # MQTT client IDs must be unique per connection — the old hardcoded
+        # default meant a second scaled-up copy would silently kick the
+        # first off the shared subscription instead of load-sharing with it
+        # (found while building the gateway-copy chaos test, session 10).
+        client_id=f"ingest-gateway-{socket.gethostname()}",
     )
 
     mqtt_thread = threading.Thread(target=subscriber.run_forever, daemon=True)

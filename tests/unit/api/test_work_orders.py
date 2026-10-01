@@ -1,31 +1,67 @@
 from api.app import work_orders
 
 
-def test_book_nearest_depot_picks_depot_with_capacity(monkeypatch):
-    depot_rows = [
-        {"id": "full", "lat": 12.97, "lon": 77.60, "bays": 1, "active_bookings": 1},
-        {"id": "open", "lat": 13.08, "lon": 80.27, "bays": 1, "active_bookings": 0},
+def _patch_schedule(monkeypatch, depots, *, open_booking=False, twin=None):
+    calls = []
+    vehicle = {"id": "veh-1", "vin": "VIN1", "depot_lat": 12.97, "depot_lon": 77.60}
+    monkeypatch.setattr("api.infra.repositories.get_vehicle", lambda s, vid: vehicle if vid == "veh-1" else None)
+    monkeypatch.setattr("api.infra.repositories.has_open_booking", lambda s, vid: open_booking)
+    monkeypatch.setattr("api.infra.repositories.get_vehicle_twin", lambda r, vin: twin)
+    monkeypatch.setattr("api.infra.repositories.list_depots", lambda s: depots)
+    monkeypatch.setattr(
+        "api.infra.repositories.propose_work_order", lambda s, v, a, by: calls.append("propose") or "wo-1"
+    )
+    monkeypatch.setattr(
+        "api.infra.repositories.approve_work_order", lambda s, wo, who: calls.append("approve") or True
+    )
+    monkeypatch.setattr(
+        "api.infra.repositories.book_depot", lambda s, d, v, wo, h: calls.append(f"book:{d}") or "booking-1"
+    )
+    return calls
+
+
+def test_schedule_maintenance_books_nearest_free_depot_and_approves(monkeypatch):
+    depots = [
+        {"id": "full", "name": "bengaluru", "city": "Bengaluru", "lat": 12.97, "lon": 77.60, "bays": 1, "active_bookings": 1},
+        {"id": "open", "name": "chennai", "city": "Chennai", "lat": 13.08, "lon": 80.27, "bays": 1, "active_bookings": 0},
     ]
-    monkeypatch.setattr("api.infra.repositories.list_depots", lambda session: depot_rows)
-    booked = {}
+    calls = _patch_schedule(monkeypatch, depots)
 
-    def fake_book_depot(session, depot_id, vehicle_id, work_order_id, hours):
-        booked.update(depot_id=depot_id, vehicle_id=vehicle_id, hours=hours)
-        return "booking-1"
+    result = work_orders.schedule_maintenance(object(), object(), "veh-1", "mgr@demo", "sub-1")
 
-    monkeypatch.setattr("api.infra.repositories.book_depot", fake_book_depot)
-
-    result = work_orders.book_nearest_depot(session=object(), vehicle_id="veh-1", vehicle_lat=12.9716, vehicle_lon=77.5946)
-
-    assert result == {"booking_id": "booking-1", "depot_id": "open"}
-    assert booked["depot_id"] == "open"
-    assert booked["hours"] == work_orders.DEFAULT_BOOKING_HOURS
+    assert calls == ["propose", "approve", "book:open"]
+    assert result["depot_city"] == "Chennai"
+    assert result["work_order_id"] == "wo-1" and result["booking_id"] == "booking-1"
 
 
-def test_book_nearest_depot_none_when_all_full(monkeypatch):
-    depot_rows = [{"id": "full", "lat": 12.97, "lon": 77.60, "bays": 1, "active_bookings": 1}]
-    monkeypatch.setattr("api.infra.repositories.list_depots", lambda session: depot_rows)
+def test_schedule_maintenance_uses_live_position_over_home_depot(monkeypatch):
+    # Truck is parked in Chennai although its home depot is Bengaluru: Chennai wins.
+    depots = [
+        {"id": "blr", "name": "bengaluru", "city": "Bengaluru", "lat": 12.97, "lon": 77.60, "bays": 4, "active_bookings": 0},
+        {"id": "maa", "name": "chennai", "city": "Chennai", "lat": 13.08, "lon": 80.27, "bays": 4, "active_bookings": 0},
+    ]
+    calls = _patch_schedule(monkeypatch, depots, twin={"lat": 13.09, "lon": 80.28})
 
-    result = work_orders.book_nearest_depot(session=object(), vehicle_id="veh-1", vehicle_lat=12.9716, vehicle_lon=77.5946)
+    work_orders.schedule_maintenance(object(), object(), "veh-1", "mgr@demo", "sub-1")
 
-    assert result is None
+    assert calls[-1] == "book:maa"
+
+
+def test_schedule_maintenance_writes_nothing_when_every_depot_is_full(monkeypatch):
+    depots = [{"id": "full", "name": "x", "city": "X", "lat": 12.97, "lon": 77.60, "bays": 1, "active_bookings": 1}]
+    calls = _patch_schedule(monkeypatch, depots)
+
+    assert work_orders.schedule_maintenance(object(), object(), "veh-1", "mgr@demo", "sub-1") is None
+    assert calls == []
+
+
+def test_schedule_maintenance_rejects_unknown_vehicle_and_double_booking(monkeypatch):
+    import pytest
+
+    _patch_schedule(monkeypatch, [])
+    with pytest.raises(work_orders.VehicleNotFound):
+        work_orders.schedule_maintenance(object(), object(), "nope", "mgr@demo", "sub-1")
+
+    _patch_schedule(monkeypatch, [], open_booking=True)
+    with pytest.raises(work_orders.AlreadyScheduled):
+        work_orders.schedule_maintenance(object(), object(), "veh-1", "mgr@demo", "sub-1")

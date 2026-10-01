@@ -19,6 +19,7 @@ sys.path.insert(0, str(REPO_ROOT / "services" / "state-writer" / "src"))
 sys.path.insert(0, str(REPO_ROOT / "libs"))
 
 from state_writer.app.writer import StateWriter  # noqa: E402
+from state_writer.domain.watchdog import ConsumerStalled  # noqa: E402
 from state_writer.infra.kafka_consumer import MessageConsumer  # noqa: E402
 from state_writer.infra.mongo_store import TwinStore  # noqa: E402
 from state_writer.infra.postgres_store import AlertStore  # noqa: E402
@@ -60,6 +61,13 @@ def main() -> None:
 
     try:
         writer.run_forever()
+    except ConsumerStalled as exc:
+        # Sessions 5 and 9: docker compose ps stays "Up" while the consumer
+        # group silently stops consuming after a broker heartbeat blip. Exit
+        # non-zero so `restart: unless-stopped` recreates the container with
+        # a fresh consumer instead of limping indefinitely.
+        logger.error("stalled, exiting for restart: %s", exc)
+        raise SystemExit(1) from exc
     finally:
         consumer.close()
         logger.info(

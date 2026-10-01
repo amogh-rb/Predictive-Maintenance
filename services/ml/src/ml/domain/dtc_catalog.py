@@ -1,12 +1,10 @@
 """Static DTC + failure-signature descriptions for the pgvector KB (PLAN §1, §2).
 
-Source of truth for the DTC list is `simulator.domain.failure.FAILURE_DTCS`
-for failures 1-5 (Must, already simulated); 6-8's DTCs are the ones PLAN §1's
-table lists for the two Should/Could failures that use single codes (7, 8) —
-6's "C0750-series" has no single code to register, so it's skipped here, same
-as `FAILURE_DTCS` skips brake_wear's threshold-only detection. Populating this
-KB is this session's deliverable regardless of whether 6-8's simulation/rules
-exist yet (PLAN §6.3 session 5) — it's reference data, not detection logic.
+Source of truth for the DTC list is `simulator.domain.failure.FAILURE_DTCS`,
+which now covers all 8 failure types (1-5 built session 4/5, 6-8 promoted
+from Should to built in session 10b) — this file's keys match `FailureType`'s
+values exactly. 6's "C0750-series" has no single code to register, same as
+`FAILURE_DTCS` skips brake_wear's threshold-only detection.
 """
 from __future__ import annotations
 

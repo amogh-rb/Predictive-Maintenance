@@ -1,0 +1,26 @@
+apiVersion: v2
+name: fleetpulse
+description: >
+  FleetPulse predictive-maintenance POC. One generic chart reused per
+  application service via values (PLAN §6.2 "one generic Helm chart reused
+  per service via values" — trimmed from per-service charts to save build
+  time). The polyglot stores/broker are pulled in as dependencies from
+  their maintained charts (PLAN §3 "using Strimzi (Kafka), the Flink
+  operator and bitnami charts for the stores") rather than reimplemented
+  as templates here.
+version: 0.1.0
+appVersion: "1.0.0"
+
+dependencies:
+  - name: postgresql
+    version: "15.5.x"
+    repository: "https://charts.bitnami.com/bitnami"
+    condition: postgresql.enabled
+  - name: redis
+    version: "19.6.x"
+    repository: "https://charts.bitnami.com/bitnami"
+    condition: redis.enabled
+  - name: mongodb
+    version: "15.6.x"
+    repository: "https://charts.bitnami.com/bitnami"
+    condition: mongodb.enabled

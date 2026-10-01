@@ -40,7 +40,7 @@ sys.path.insert(0, str(REPO_ROOT / "services" / "simulator" / "src"))
 
 from simulator.domain.failure import FailurePlan, plan_failures  # noqa: E402
 from simulator.domain.signals import SignalEngine  # noqa: E402
-from simulator.domain.vehicle import VehicleType, generate_fleet  # noqa: E402
+from simulator.domain.vehicle import generate_fleet  # noqa: E402
 
 FLEET_SIZE = 100_000
 FLEET_SEED = 42  # must match db/postgres/seed_fleet.py so VINs join to `vehicle`
@@ -92,6 +92,13 @@ def main() -> None:
     parser.add_argument("--days", type=int, default=30, help="days of history ending now")
     parser.add_argument("--fast-interval-s", type=int, default=300, help="FAST sample spacing")
     parser.add_argument("--health-interval-s", type=int, default=900, help="HEALTH sample spacing")
+    parser.add_argument(
+        "--commit-every", type=int, default=500,
+        help="commit after this many vehicles, instead of one transaction for the whole run "
+             "(a single multi-hour transaction can't let Postgres recycle its WAL until it "
+             "commits, which both balloons disk usage and slows COPY down as the run goes on, "
+             "and loses all progress if the process dies before the end)",
+    )
     args = parser.parse_args()
 
     if args.health_interval_s % args.fast_interval_s != 0:
@@ -111,7 +118,7 @@ def main() -> None:
     backfill_end = datetime.now(timezone.utc)
     backfill_start = backfill_end - timedelta(days=args.days)
     failure_plans = plan_failures(
-        [v.vin for v in subset], backfill_start, window_days=args.days, seed=FAILURE_SEED
+        subset, backfill_start, window_days=args.days, seed=FAILURE_SEED
     )
 
     # Every backfilled vin goes in, not just the ones with a planted failure —
@@ -145,33 +152,44 @@ def main() -> None:
     fast_rows = health_rows = 0
     t0 = time.monotonic()
 
-    with conn_fast, conn_fast.cursor() as cur_fast, \
-         conn_health, conn_health.cursor() as cur_health, \
-         cur_fast.copy(f"COPY telemetry_fast ({', '.join(FAST_COLUMNS)}) FROM STDIN") as copy_fast, \
-         cur_health.copy(f"COPY telemetry_health ({', '.join(HEALTH_COLUMNS)}) FROM STDIN") as copy_health:
+    try:
+        for batch_start in range(0, len(subset), args.commit_every):
+            batch = subset[batch_start : batch_start + args.commit_every]
+            # A fresh COPY + commit per batch, not one transaction for the whole
+            # run: Postgres can't recycle WAL until a transaction commits, so a
+            # single multi-hour transaction makes WAL (and disk use) grow for the
+            # entire run, gets slower as it goes, and loses everything committed
+            # nowhere if the process dies before the very end. See PROGRESS.md.
+            with conn_fast.cursor() as cur_fast, \
+                 conn_health.cursor() as cur_health, \
+                 cur_fast.copy(f"COPY telemetry_fast ({', '.join(FAST_COLUMNS)}) FROM STDIN") as copy_fast, \
+                 cur_health.copy(f"COPY telemetry_health ({', '.join(HEALTH_COLUMNS)}) FROM STDIN") as copy_health:
 
-        for i, vehicle in enumerate(subset):
-            plan: FailurePlan | None = failure_plans.get(vehicle.vin)
-            engine = SignalEngine(vehicle, plan)
-            at = backfill_start
-            seq = 0
-            for tick in range(n_ticks):
-                engine.step(float(args.fast_interval_s))
-                seq += 1
-                copy_fast.write_row(_fast_row(vehicle, engine, at, seq))
-                fast_rows += 1
-                if tick % health_every_n_ticks == 0:
-                    seq += 1
-                    copy_health.write_row(_health_row(vehicle, engine, at, seq))
-                    health_rows += 1
-                at += timedelta(seconds=args.fast_interval_s)
+                for vehicle in batch:
+                    plan: FailurePlan | None = failure_plans.get(vehicle.vin)
+                    engine = SignalEngine(vehicle, plan)
+                    at = backfill_start
+                    seq = 0
+                    for tick in range(n_ticks):
+                        engine.step(float(args.fast_interval_s))
+                        seq += 1
+                        copy_fast.write_row(_fast_row(vehicle, engine, at, seq))
+                        fast_rows += 1
+                        if tick % health_every_n_ticks == 0:
+                            seq += 1
+                            copy_health.write_row(_health_row(vehicle, engine, at, seq))
+                            health_rows += 1
+                        at += timedelta(seconds=args.fast_interval_s)
 
-            if (i + 1) % 500 == 0:
-                elapsed = time.monotonic() - t0
-                print(f"  {i + 1}/{len(subset)} vehicles, {fast_rows} fast + {health_rows} health rows, {elapsed:.0f}s")
+            conn_fast.commit()
+            conn_health.commit()
+            done = batch_start + len(batch)
+            elapsed = time.monotonic() - t0
+            print(f"  {done}/{len(subset)} vehicles, {fast_rows} fast + {health_rows} health rows, {elapsed:.0f}s (committed)")
+    finally:
+        conn_fast.close()
+        conn_health.close()
 
-    conn_fast.close()
-    conn_health.close()
     elapsed = time.monotonic() - t0
     print(f"done: {fast_rows} fast rows, {health_rows} health rows, {elapsed:.0f}s, labels -> {labels_path}")
 

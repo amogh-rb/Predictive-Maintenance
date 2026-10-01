@@ -1,0 +1,291 @@
+{
+  "$defs": {
+    "FastPayload": {
+      "description": "1 Hz driving telemetry. Engine-specific fields are optional by drivetrain.",
+      "properties": {
+        "accel_lat_g": {
+          "title": "Accel Lat G",
+          "type": "number"
+        },
+        "accel_long_g": {
+          "title": "Accel Long G",
+          "type": "number"
+        },
+        "ambient_c": {
+          "title": "Ambient C",
+          "type": "number"
+        },
+        "coolant_c": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Coolant C"
+        },
+        "fuel_pct": {
+          "anyOf": [
+            {
+              "maximum": 100,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fuel Pct"
+        },
+        "fuel_rate_lph": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fuel Rate Lph"
+        },
+        "gear": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Gear"
+        },
+        "gps_hdop": {
+          "minimum": 0,
+          "title": "Gps Hdop",
+          "type": "number"
+        },
+        "heading": {
+          "exclusiveMaximum": 360,
+          "minimum": 0,
+          "title": "Heading",
+          "type": "number"
+        },
+        "hv_a": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Hv A"
+        },
+        "hv_v": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Hv V"
+        },
+        "lat": {
+          "maximum": 90,
+          "minimum": -90,
+          "title": "Lat",
+          "type": "number"
+        },
+        "load_pct": {
+          "anyOf": [
+            {
+              "maximum": 100,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Load Pct"
+        },
+        "lon": {
+          "maximum": 180,
+          "minimum": -180,
+          "title": "Lon",
+          "type": "number"
+        },
+        "odo_km": {
+          "minimum": 0,
+          "title": "Odo Km",
+          "type": "number"
+        },
+        "oil_c": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Oil C"
+        },
+        "oil_kpa": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Oil Kpa"
+        },
+        "rpm": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rpm"
+        },
+        "soc_pct": {
+          "anyOf": [
+            {
+              "maximum": 100,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Soc Pct"
+        },
+        "speed_kmh": {
+          "minimum": 0,
+          "title": "Speed Kmh",
+          "type": "number"
+        },
+        "throttle_pct": {
+          "anyOf": [
+            {
+              "maximum": 100,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Throttle Pct"
+        },
+        "trans_c": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Trans C"
+        }
+      },
+      "required": [
+        "lat",
+        "lon",
+        "heading",
+        "gps_hdop",
+        "speed_kmh",
+        "odo_km",
+        "accel_long_g",
+        "accel_lat_g",
+        "ambient_c"
+      ],
+      "title": "FastPayload",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "driver_token": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Driver Token"
+    },
+    "fw_version": {
+      "title": "Fw Version",
+      "type": "string"
+    },
+    "msg_type": {
+      "const": "FAST",
+      "title": "Msg Type",
+      "type": "string"
+    },
+    "payload": {
+      "$ref": "#/$defs/FastPayload"
+    },
+    "schema_ver": {
+      "default": 1,
+      "title": "Schema Ver",
+      "type": "integer"
+    },
+    "seq": {
+      "minimum": 0,
+      "title": "Seq",
+      "type": "integer"
+    },
+    "ts": {
+      "format": "date-time",
+      "title": "Ts",
+      "type": "string"
+    },
+    "vin": {
+      "maxLength": 17,
+      "minLength": 17,
+      "title": "Vin",
+      "type": "string"
+    }
+  },
+  "required": [
+    "vin",
+    "msg_type",
+    "seq",
+    "ts",
+    "fw_version",
+    "payload"
+  ],
+  "title": "FastMessage",
+  "type": "object"
+}

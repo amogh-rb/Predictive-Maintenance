@@ -1,0 +1,13 @@
+# Overlay for AKS — only the cluster-specific bits change (PLAN §6.2: "shows
+# the second cloud without code changes"). `helm install -f values.yaml -f values-azure.yaml`.
+global:
+  imageRegistry: "fleetpulse.azurecr.io"
+
+postgresql:
+  primary:
+    persistence:
+      storageClass: managed-csi
+
+ingress:
+  enabled: true
+  className: azure-application-gateway

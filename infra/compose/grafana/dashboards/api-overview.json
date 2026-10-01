@@ -1,0 +1,49 @@
+{
+  "title": "FleetPulse API — Overview",
+  "uid": "fleetpulse-api-overview",
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": true,
+  "timezone": "browser",
+  "time": { "from": "now-30m", "to": "now" },
+  "refresh": "10s",
+  "panels": [
+    {
+      "id": 1,
+      "title": "API request rate (req/s, by path)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        {
+          "expr": "sum(rate(http_server_duration_milliseconds_count[1m])) by (http_target)",
+          "legendFormat": "{{http_target}}"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "API p95 latency (ms)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(http_server_duration_milliseconds_bucket[5m])) by (le))",
+          "legendFormat": "p95"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Raw http_server_* series (verify exact metric name here first)",
+      "type": "table",
+      "description": "OTel semantic-convention metric names shift between instrumentation library versions. If the two panels above are empty, run this query in Explore to find the real metric name exported by opentelemetry-instrumentation-fastapi and fix the two expressions above.",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        { "expr": "{__name__=~\"http_server.*\"}", "format": "table", "instant": true }
+      ]
+    }
+  ]
+}

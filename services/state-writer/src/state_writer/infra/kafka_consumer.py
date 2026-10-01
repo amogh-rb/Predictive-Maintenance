@@ -31,6 +31,18 @@ class MessageConsumer:
         )
         self._consumer.subscribe(topics)
 
+    def has_assignment(self) -> bool:
+        """True while the consumer group actually holds a partition
+        assignment. Sessions 5 and 9 both hit the same failure mode after
+        several hours of sustained load: a broker-coordinator heartbeat
+        blip triggers `SESSTMOUT`/"revoking assignment and rejoining
+        group", and the rejoin never fully completes — `docker compose ps`
+        still shows the container "Up", but it silently stops consuming
+        forever. `StateWriter.run_forever` polls this to detect that state
+        and force a clean restart instead of limping indefinitely.
+        """
+        return len(self._consumer.assignment()) > 0
+
     def poll(self, timeout: float = 1.0) -> tuple[str, dict] | None:
         msg = self._consumer.poll(timeout)
         if msg is None:

@@ -22,6 +22,11 @@ SQL_DIR=stream/flink/sql
 # paths) and get mangled; stdin has no path to mangle.
 {
     echo "SET 'table.exec.state.ttl' = '1 h';"
+    # Without this, an idle Kafka partition pins the job-wide event-time
+    # watermark (it's the min across partitions), so HOP windows and
+    # MATCH_RECOGNIZE never fire unless all 6 `telemetry` partitions are
+    # receiving traffic — a single-VIN `make inject-fault` never alerted.
+    echo "SET 'table.exec.source.idle-timeout' = '10 s';"
     # Checkpointing is load-bearing, not optional: the lake's filesystem sink
     # only finalizes part files on a checkpoint (without it, files stay as
     # forever-unfinished S3 multipart uploads), and enabling it also switches

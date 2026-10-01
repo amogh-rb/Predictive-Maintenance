@@ -8,7 +8,9 @@ pipeline fire (verification item 3: alert in the UI within 5s of the
 breach — Flink side lands in session 4, this script covers the ingest half).
 
 Usage: python services/simulator/inject_fault.py --vin <17-char VIN> --type overheat
-Types: overheat (cooling), oil (lubrication), battery, misfire, brakes (brake_wear)
+Types: overheat (cooling), oil (lubrication), battery, misfire, brakes (brake_wear),
+tyre (tyre_leak), transmission, ev_battery (EV_HV_BATTERY — publishes as an EV
+vehicle, since the failure doesn't exist on an ICE powertrain)
 """
 from __future__ import annotations
 
@@ -39,7 +41,14 @@ TYPE_MAP = {
     "battery": FailureType.BATTERY,
     "misfire": FailureType.MISFIRE,
     "brakes": FailureType.BRAKE_WEAR,
+    "tyre": FailureType.TYRE_LEAK,
+    "transmission": FailureType.TRANSMISSION,
+    "ev_battery": FailureType.EV_HV_BATTERY,
 }
+# EV_HV_BATTERY only shows up in payloads for EV/HYBRID vehicles (signals.py
+# gates cell_v_delta_mv etc. on vehicle_type) — everything else runs fine as
+# the default ICE truck.
+_VEHICLE_TYPE_FOR_FAILURE = {FailureType.EV_HV_BATTERY: VehicleType.EV}
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -60,14 +69,16 @@ def main(argv: list[str] | None = None) -> None:
         logging.warning("VIN %s has an invalid check digit; using %s instead", vin, fixed)
         vin = fixed
 
+    failure_type = TYPE_MAP[args.type]
     vehicle = Vehicle(
-        vin=vin, tenant=args.tenant, vehicle_type=VehicleType.ICE,
+        vin=vin, tenant=args.tenant,
+        vehicle_type=_VEHICLE_TYPE_FOR_FAILURE.get(failure_type, VehicleType.ICE),
         depot=DEPOTS[0], fw_version="1.0.0", driver_token="drv-injected",
     )
     now = datetime.now(timezone.utc)
     plan = FailurePlan(
         vin=vin,
-        failure_type=TYPE_MAP[args.type],
+        failure_type=failure_type,
         onset_at=now,
         failure_at=now + timedelta(seconds=args.ramp_seconds),
     )

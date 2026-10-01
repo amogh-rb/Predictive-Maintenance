@@ -1,0 +1,10 @@
+== fleet_manager: GET /v1/analytics/embed-url ==
+embed_url starts with: http://localhost:3002/embed/dashboard/eyJhbGc ...
+HTTP 200
+
+== embed url itself loads (iframe-fetchable) ==
+HTTP 200
+
+== technician: GET /v1/analytics/embed-url (expect 403, RBAC) ==
+{"type":"about:blank","title":"Forbidden","status":403,"detail":"role(s) ['technician'] cannot view_analytics"}
+HTTP 403

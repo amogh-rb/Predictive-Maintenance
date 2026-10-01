@@ -1,0 +1,13 @@
+# Overlay for GKE — only the cluster-specific bits change (PLAN §6.2: "shows
+# the second cloud without code changes"). `helm install -f values.yaml -f values-gcp.yaml`.
+global:
+  imageRegistry: "asia-south1-docker.pkg.dev/PROJECT_ID/fleetpulse"
+
+postgresql:
+  primary:
+    persistence:
+      storageClass: standard-rwo
+
+ingress:
+  enabled: true
+  className: gce

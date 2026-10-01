@@ -88,7 +88,18 @@ def main() -> None:
         F.avg("trans_c").alias("avg_trans_c"),
         F.max("trans_c").alias("max_trans_c"),
         F.avg("fuel_rate_lph").alias("avg_fuel_rate_lph"),
+        F.avg("speed_kmh").alias("avg_speed_kmh"),
         F.count(F.lit(1)).alias("fast_samples"),
+    )
+    # Transmission slip (failure 7): rpm rising relative to road speed rather
+    # than tracking it (PLAN §1's "rpm vs speed" pattern) — rpm here already
+    # reflects the simulator's slip inflation (signals.py's `reported_rpm`),
+    # so this is just the daily ratio of the two aggregates already above.
+    # A daily ratio, not a per-sample one: a single idle/stopped sample would
+    # otherwise divide by ~0 and blow the ratio up.
+    daily_fast = daily_fast.withColumn(
+        "rpm_per_speed_kmh",
+        F.when(F.col("avg_speed_kmh") > 5, F.col("avg_rpm") / F.col("avg_speed_kmh")),
     )
 
     tyre_delta_udf = F.udf(_tyre_sibling_delta, DoubleType())
@@ -101,9 +112,12 @@ def main() -> None:
         F.min("batt_12v_rest_v").alias("min_batt_12v_rest_v"),
         F.min(F.array_min("brake_pad_pct")).alias("min_brake_pad_pct"),
         F.max("tyre_delta_kpa").alias("max_tyre_delta_kpa"),
+        F.min(F.array_min("tire_kpa")).alias("min_tire_kpa"),
+        F.max(F.array_max("tire_c")).alias("max_tire_c"),
         F.max("any_dtc").alias("any_dtc_today"),
         F.max("cell_v_delta_mv").alias("max_cell_v_delta_mv"),
         F.min("soh_pct").alias("min_soh_pct"),
+        F.max("cell_temp_max_c").alias("max_cell_temp_c"),
         F.count(F.lit(1)).alias("health_samples"),
     )
 
@@ -119,6 +133,13 @@ def main() -> None:
         .withColumn("brake_pad_slope_7d", F.col("min_brake_pad_pct") - F.lag("min_brake_pad_pct", TRAIL_DAYS - 1).over(lag_w))
         .withColumn("dtc_recurrence_7d", F.sum("any_dtc_today").over(w))
         .withColumn("max_tyre_delta_7d", F.max("max_tyre_delta_kpa").over(w))
+        # 6-8 (session 10b): trailing slopes matching each failure's own
+        # real-time threshold direction, same "slope over TRAIL_DAYS" shape
+        # as the 5 Must-failure slopes above, so lead_time.py can extrapolate
+        # them the same way.
+        .withColumn("trans_c_slope_7d", F.col("max_trans_c") - F.lag("max_trans_c", TRAIL_DAYS - 1).over(lag_w))
+        .withColumn("min_tire_kpa_slope_7d", F.col("min_tire_kpa") - F.lag("min_tire_kpa", TRAIL_DAYS - 1).over(lag_w))
+        .withColumn("max_cell_temp_c_slope_7d", F.col("max_cell_temp_c") - F.lag("max_cell_temp_c", TRAIL_DAYS - 1).over(lag_w))
     )
 
     # Label: 1 if this day falls inside [failure_at - 7d, failure_at) for the

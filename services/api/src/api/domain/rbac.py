@@ -13,28 +13,35 @@ class Action(str, Enum):
     VIEW_AT_RISK = "view_at_risk"
     VIEW_VEHICLE = "view_vehicle"
     VIEW_ALERTS = "view_alerts"
-    PROPOSE_WORK_ORDER = "propose_work_order"
     APPROVE_WORK_ORDER = "approve_work_order"
-    BOOK_DEPOT = "book_depot"
     VIEW_AUDIT_LOG = "view_audit_log"
     ERASE_DRIVER = "erase_driver"
+    VIEW_ANALYTICS = "view_analytics"
+    VIEW_SCHEDULED = "view_scheduled"
+    SCHEDULE_MAINTENANCE = "schedule_maintenance"
+    COMPLETE_MAINTENANCE = "complete_maintenance"
 
 
 _ROLE_ACTIONS: dict[str, set[Action]] = {
     "fleet_admin": {
         Action.VIEW_AT_RISK, Action.VIEW_VEHICLE, Action.VIEW_ALERTS,
-        Action.PROPOSE_WORK_ORDER, Action.APPROVE_WORK_ORDER, Action.BOOK_DEPOT,
-        Action.VIEW_AUDIT_LOG, Action.ERASE_DRIVER,
+        Action.APPROVE_WORK_ORDER,
+        Action.VIEW_AUDIT_LOG, Action.ERASE_DRIVER, Action.VIEW_ANALYTICS,
+        Action.VIEW_SCHEDULED, Action.SCHEDULE_MAINTENANCE, Action.COMPLETE_MAINTENANCE,
     },
     "fleet_manager": {
         Action.VIEW_AT_RISK, Action.VIEW_VEHICLE, Action.VIEW_ALERTS,
-        Action.PROPOSE_WORK_ORDER, Action.APPROVE_WORK_ORDER, Action.BOOK_DEPOT,
+        Action.APPROVE_WORK_ORDER,
+        Action.VIEW_ANALYTICS,
+        Action.VIEW_SCHEDULED, Action.SCHEDULE_MAINTENANCE, Action.COMPLETE_MAINTENANCE,
     },
     "technician": {
-        Action.VIEW_VEHICLE, Action.VIEW_ALERTS, Action.PROPOSE_WORK_ORDER,
+        Action.VIEW_VEHICLE, Action.VIEW_ALERTS,
+        Action.VIEW_SCHEDULED, Action.COMPLETE_MAINTENANCE,
     },
     "auditor": {
         Action.VIEW_AT_RISK, Action.VIEW_VEHICLE, Action.VIEW_ALERTS, Action.VIEW_AUDIT_LOG,
+        Action.VIEW_SCHEDULED,
     },
 }
 

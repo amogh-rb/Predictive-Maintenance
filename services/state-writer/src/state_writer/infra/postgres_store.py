@@ -28,7 +28,10 @@ class AlertStore:
             tenant_ids = [row[0] for row in cur.fetchall()]
             for tenant_id in tenant_ids:
                 cur.execute("SELECT set_config('app.tenant_id', %s, false)", (str(tenant_id),))
-                cur.execute("SELECT vin, id FROM vehicle")
+                # Filter explicitly: this role bypasses RLS (it's the table owner/superuser), so relying on
+                # the app.tenant_id setting alone returned every tenant's vehicles on each pass and the
+                # last tenant loaded won for every VIN, filing alerts under the wrong tenant.
+                cur.execute("SELECT vin, id FROM vehicle WHERE tenant_id = %s", (tenant_id,))
                 for vin, vehicle_id in cur.fetchall():
                     self._vin_index[vin] = (str(tenant_id), str(vehicle_id))
 

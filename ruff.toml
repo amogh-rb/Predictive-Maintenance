@@ -1,0 +1,8 @@
+# PLAN §5/§6.3 session 9: real correctness lint (undefined names, unused
+# imports, syntax errors — F + E9), not a full style pass across a hackathon
+# codebase where every service already has its own working conventions.
+# Import sorting/formatting/line-length are deliberately out of scope here.
+line-length = 120
+
+[lint]
+select = ["F", "E9"]

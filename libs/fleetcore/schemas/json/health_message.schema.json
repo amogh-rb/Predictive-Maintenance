@@ -1,0 +1,185 @@
+{
+  "$defs": {
+    "HealthPayload": {
+      "description": "60 s wear/state snapshot, plus at ignition on/off.",
+      "properties": {
+        "active_dtc": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Active Dtc",
+          "type": "array"
+        },
+        "batt_12v_rest_v": {
+          "title": "Batt 12V Rest V",
+          "type": "number"
+        },
+        "brake_pad_pct": {
+          "items": {
+            "maximum": 100,
+            "minimum": 0,
+            "type": "number"
+          },
+          "title": "Brake Pad Pct",
+          "type": "array"
+        },
+        "cell_temp_max_c": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cell Temp Max C"
+        },
+        "cell_temp_min_c": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cell Temp Min C"
+        },
+        "cell_v_delta_mv": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cell V Delta Mv"
+        },
+        "charge_v": {
+          "title": "Charge V",
+          "type": "number"
+        },
+        "crank_min_v": {
+          "title": "Crank Min V",
+          "type": "number"
+        },
+        "engine_hours": {
+          "minimum": 0,
+          "title": "Engine Hours",
+          "type": "number"
+        },
+        "idle_s": {
+          "minimum": 0,
+          "title": "Idle S",
+          "type": "integer"
+        },
+        "mil_on": {
+          "title": "Mil On",
+          "type": "boolean"
+        },
+        "soh_pct": {
+          "anyOf": [
+            {
+              "maximum": 100,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Soh Pct"
+        },
+        "tire_c": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Tire C",
+          "type": "array"
+        },
+        "tire_kpa": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Tire Kpa",
+          "type": "array"
+        }
+      },
+      "required": [
+        "tire_kpa",
+        "tire_c",
+        "brake_pad_pct",
+        "batt_12v_rest_v",
+        "crank_min_v",
+        "charge_v",
+        "engine_hours",
+        "idle_s",
+        "mil_on"
+      ],
+      "title": "HealthPayload",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "driver_token": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Driver Token"
+    },
+    "fw_version": {
+      "title": "Fw Version",
+      "type": "string"
+    },
+    "msg_type": {
+      "const": "HEALTH",
+      "title": "Msg Type",
+      "type": "string"
+    },
+    "payload": {
+      "$ref": "#/$defs/HealthPayload"
+    },
+    "schema_ver": {
+      "default": 1,
+      "title": "Schema Ver",
+      "type": "integer"
+    },
+    "seq": {
+      "minimum": 0,
+      "title": "Seq",
+      "type": "integer"
+    },
+    "ts": {
+      "format": "date-time",
+      "title": "Ts",
+      "type": "string"
+    },
+    "vin": {
+      "maxLength": 17,
+      "minLength": 17,
+      "title": "Vin",
+      "type": "string"
+    }
+  },
+  "required": [
+    "vin",
+    "msg_type",
+    "seq",
+    "ts",
+    "fw_version",
+    "payload"
+  ],
+  "title": "HealthMessage",
+  "type": "object"
+}

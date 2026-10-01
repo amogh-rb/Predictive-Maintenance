@@ -1,0 +1,143 @@
+{
+  "consumer": {
+    "name": "web"
+  },
+  "interactions": [
+    {
+      "description": "a request for the at-risk vehicle list",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "vehicles have been scored by the ML pipeline"
+        }
+      ],
+      "request": {
+        "headers": {
+          "Authorization": [
+            "Bearer token"
+          ]
+        },
+        "matchingRules": {
+          "header": {
+            "Authorization": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "method": "GET",
+        "path": "/v1/vehicles/at-risk"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "items": [
+              {
+                "depot_city": "Chennai",
+                "depot_name": "Chennai Depot",
+                "failure_type": "cooling",
+                "risk_score": 0.842,
+                "vehicle_id": "3f9c1e2a-0000-4000-8000-000000000001",
+                "vin": "1HGCM82633A004352"
+              }
+            ],
+            "next_cursor": "eyJyIjoxLjAsInYiOiJhYmMifQ=="
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.items": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.items[*].depot_city": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.items[*].depot_name": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.items[*].failure_type": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.items[*].risk_score": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.items[*].vehicle_id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.items[*].vin": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.next_cursor": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    }
+  ],
+  "metadata": {
+    "pactRust": {
+      "ffi": "0.5.8",
+      "models": "1.3.16"
+    },
+    "pactSpecification": {
+      "version": "4.0"
+    }
+  },
+  "provider": {
+    "name": "api"
+  }
+}

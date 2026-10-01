@@ -33,6 +33,18 @@ TENANT_NAME = "demo"
 
 # city, lat, lon — enough for `find_nearest_depot` (Dijkstra/A*, PLAN §2) to
 # have real coordinates to route between.
+# Must match the fixed `id` pinned on each user in
+# infra/keycloak/fleetpulse-realm.json — work_order.approved_by (etc.) FKs to
+# app_user(id), and the API stores the JWT's `sub` there directly (session 6),
+# so these rows have to exist with exactly the Keycloak-issued subject UUID,
+# not a fresh one Postgres would generate on its own.
+DEMO_USERS = [
+    ("1db778c0-0b33-44d7-bd4c-66f0b79a6867", "admin@demo.fleetpulse", "fleet_admin"),
+    ("ed68475c-f6c9-4d8a-b5f7-8b04b3b1fd15", "manager@demo.fleetpulse", "fleet_manager"),
+    ("81a6c1f0-1201-4762-b936-c3387f21fc4f", "tech@demo.fleetpulse", "technician"),
+    ("e6e2f72e-e2ba-4b89-bad6-26da05fa143c", "audit@demo.fleetpulse", "auditor"),
+]
+
 DEPOT_COORDS = {
     "mumbai": ("Mumbai", 19.0760, 72.8777),
     "delhi": ("Delhi", 28.7041, 77.1025),
@@ -87,6 +99,14 @@ def main() -> None:
             # with is_local=false so it survives across this connection's
             # transaction commits.
             cur.execute("SELECT set_config('app.tenant_id', %s, false)", (str(tenant_id),))
+
+            for user_id, email, role in DEMO_USERS:
+                cur.execute(
+                    "INSERT INTO app_user (id, tenant_id, email, role) VALUES (%s, %s, %s, %s) "
+                    "ON CONFLICT (id) DO UPDATE SET tenant_id = EXCLUDED.tenant_id, "
+                    "email = EXCLUDED.email, role = EXCLUDED.role",
+                    (user_id, tenant_id, email, role),
+                )
 
             cur.execute("TRUNCATE vehicle, driver, depot RESTART IDENTITY CASCADE")
             cur.execute("TRUNCATE vehicle_model RESTART IDENTITY CASCADE")

@@ -1,0 +1,17 @@
+{{- range $name, $svc := .Values.services }}
+{{- if gt ($svc.replicas | int) 1 }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "fleetpulse.serviceName" (dict "root" $ "name" $name) }}
+  labels:
+    {{- include "fleetpulse.labels" (dict "root" $ "name" $name) | nindent 4 }}
+spec:
+  minAvailable: {{ $.Values.podDisruptionBudget.minAvailable }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ $name }}
+      app.kubernetes.io/instance: {{ $.Release.Name }}
+---
+{{- end }}
+{{- end }}

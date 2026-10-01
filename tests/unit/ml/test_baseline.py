@@ -43,3 +43,15 @@ def test_brake_pad_breach_predicts_positive():
 
 def test_missing_fields_default_to_negative():
     assert baseline.predict({}) == 0
+
+
+def test_transmission_overheat_breach_predicts_positive():
+    assert baseline.predict(_healthy_row(max_trans_c=140.0)) == 1
+
+
+def test_tyre_pressure_breach_predicts_positive():
+    assert baseline.predict(_healthy_row(min_tire_kpa=400.0)) == 1
+
+
+def test_ev_cell_overtemp_breach_predicts_positive():
+    assert baseline.predict(_healthy_row(max_cell_temp_c=70.0)) == 1

@@ -1,0 +1,16 @@
+== card 27: Fleet risk distribution by failure type ==
+['misfire', 13]
+['battery', 10]
+['brake_wear', 7]
+['lubrication', 6]
+['cooling', 6]
+
+== card 28: Open alerts, last 30 days ==
+['2026-09-28T00:00:00Z', 1087]
+['2026-09-29T00:00:00Z', 819]
+
+== card 29: Work order mean time to approval (hours) ==
+[0.0]
+
+== card 30: Daily telemetry health trend ==
+['2026-09-29T00:00:00Z', 89.99907901934107, 281.47830296290067]

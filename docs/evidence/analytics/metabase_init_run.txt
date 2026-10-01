@@ -1,0 +1,5 @@
+metabase: already set up, logged in
+metabase: instance-wide embedding enabled
+metabase: databases ready (core=2, telemetry=3)
+metabase: 4 questions ready
+metabase: dashboard ready (id=2)

@@ -47,6 +47,14 @@ SELECT vin, tenant, failure_type, severity, source, dtc_codes, detected_at FROM 
 UNION ALL
 SELECT vin, tenant, failure_type, severity, source, dtc_codes, detected_at FROM alert_misfire_recurrence
 UNION ALL
-SELECT vin, tenant, failure_type, severity, source, dtc_codes, detected_at FROM alert_brakes;
+SELECT vin, tenant, failure_type, severity, source, dtc_codes, detected_at FROM alert_brakes
+UNION ALL
+SELECT vin, tenant, failure_type, severity, source, dtc_codes, detected_at FROM alert_tyre_pressure
+UNION ALL
+SELECT vin, tenant, failure_type, severity, source, dtc_codes, detected_at FROM alert_tyre_temp
+UNION ALL
+SELECT vin, tenant, failure_type, severity, source, dtc_codes, detected_at FROM alert_transmission
+UNION ALL
+SELECT vin, tenant, failure_type, severity, source, dtc_codes, detected_at FROM alert_ev_hv_battery;
 
 END;

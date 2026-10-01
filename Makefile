@@ -7,10 +7,12 @@ PYTHON := $(shell if [ -x .venv/Scripts/python.exe ]; then echo .venv/Scripts/py
                    else echo python; fi)
 
 .PHONY: help setup certs up down ps logs migrate seed simulate bench-ingest burst inject-fault \
-        lake-init flink-submit backfill batch train build-kb refresh-risk test chaos lint
+        lake-init flink-submit backfill batch train build-kb refresh-risk metabase-init test \
+        test-integration test-contract test-bdd test-all chaos lint explain
 
 VEHICLES ?= 5000
 DAYS ?= 30
+BASELINE_RATE ?= 500
 
 help: ## Show this help
 	@grep -hE '^[a-zA-Z_-]+:.*## ' $(MAKEFILE_LIST) | sort | awk 'BEGIN{FS=":.*## "}{printf "%-16s %s\n", $$1, $$2}'
@@ -48,8 +50,8 @@ simulate: ## Run the truck simulator against MQTT, e.g. make simulate RATE=20000
 bench-ingest: ## Dedicated ingest throughput benchmark, 5 min, e.g. make bench-ingest RATE=20000
 	$(PYTHON) services/simulator/bench_ingest.py --rate $(RATE) --duration 300
 
-burst: ## 3x burst load test (session 9+)
-	@echo "TODO (session 9): burst test not yet built"
+burst: ## 3x burst load test: lag + zero-loss, e.g. make burst BASELINE_RATE=500
+	$(PYTHON) services/simulator/burst_test.py --baseline-rate $(BASELINE_RATE)
 
 inject-fault: ## Inject a planted failure, e.g. make inject-fault VIN=... TYPE=overheat
 	$(PYTHON) services/simulator/inject_fault.py --vin "$(VIN)" --type $(TYPE)
@@ -77,11 +79,35 @@ build-kb: ## Populate the pgvector DTC knowledge base + failure signatures
 refresh-risk: ## Refresh the vehicle_latest_risk materialized view the at-risk API reads (run after make train)
 	docker compose exec -T postgres sh -c 'psql -U "$$POSTGRES_USER" -d "$$POSTGRES_DB" -v ON_ERROR_STOP=1 -q -c "REFRESH MATERIALIZED VIEW CONCURRENTLY vehicle_latest_risk;"'
 
-test: ## Run the full test suite (unit + integration + contract + BDD)
+metabase-init: ## One-time (idempotent): bootstrap Metabase admin + DB connections + dashboard (needs obs profile up)
+	$(PYTHON) infra/compose/metabase-provision.py
+
+test: ## Run the unit suite only (fast, no docker required beyond what's already up)
 	$(PYTHON) -m pytest tests/unit -q
 
-chaos: ## Kill a broker/gateway/TM mid-load and verify zero-loss recovery (session 9+)
-	@echo "TODO (session 9): chaos scripts not yet built"
+test-integration: ## Testcontainers integration tests (spins ephemeral Postgres/Kafka/Redis/Mongo — no `make up` needed)
+	$(PYTHON) -m pytest tests/integration -q
 
-lint: ## Run lint stub (extended by each service as it's added)
-	@echo "TODO: no lintable service code yet"
+test-contract: ## Pact (web<->api) + JSON-Schema (telemetry message) contract tests
+	$(PYTHON) -m pytest tests/contract -q
+
+test-bdd: ## behave acceptance scenarios (PLAN §5) — needs the live core stack: run `make up && make seed` first
+	PYTHONPATH="libs;services/simulator/src" $(PYTHON) -m behave tests/bdd
+
+test-all: test test-integration test-contract test-bdd ## Everything: unit, integration, contract, BDD
+
+explain: ## Capture real EXPLAIN ANALYZE before/after for PLAN §2's 3 SQL optimisations
+	$(PYTHON) docs/evidence/sql/run_explain.py
+
+chaos: ## Kill flink-taskmanager mid-load, verify zero-loss recovery by seq (needs make flink-submit first)
+	$(PYTHON) services/simulator/chaos_test.py
+
+chaos-broker: ## Kill a Kafka broker (chaos profile, 3-broker cluster) mid-produce, verify zero-loss (needs: docker compose --profile chaos up -d)
+	$(PYTHON) services/simulator/chaos_broker_test.py
+
+chaos-gateway: ## Kill one of 2 ingest-gateway copies mid-load, verify zero-loss (needs: docker compose --profile core up -d --scale ingest-gateway=2)
+	$(PYTHON) services/simulator/chaos_gateway_test.py
+
+lint: ## Ruff over every Python service/lib + eslint over web
+	$(PYTHON) -m ruff check libs services db batch tests
+	cd web && npm run lint

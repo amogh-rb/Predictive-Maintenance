@@ -21,7 +21,7 @@ def test_auditor_can_view_audit_log_but_not_approve():
 def test_union_of_multiple_roles():
     # A user tagged both technician and auditor gets both sets' permissions.
     assert can(["technician", "auditor"], Action.VIEW_AUDIT_LOG)
-    assert can(["technician", "auditor"], Action.PROPOSE_WORK_ORDER)
+    assert can(["technician", "auditor"], Action.COMPLETE_MAINTENANCE)
 
 
 def test_unknown_role_grants_nothing():
@@ -34,3 +34,16 @@ def test_highest_precision_role_prefers_admin():
 
 def test_highest_precision_role_defaults_to_auditor():
     assert highest_precision_role(["made-up-role"]) == "auditor"
+
+
+def test_maintenance_scheduled_permissions():
+    assert can(["fleet_manager"], Action.SCHEDULE_MAINTENANCE)
+    assert can(["fleet_admin"], Action.SCHEDULE_MAINTENANCE)
+    # technicians see the schedule and mark jobs serviced, but don't book
+    assert can(["technician"], Action.VIEW_SCHEDULED)
+    assert can(["technician"], Action.COMPLETE_MAINTENANCE)
+    assert not can(["technician"], Action.SCHEDULE_MAINTENANCE)
+    # auditors are read-only
+    assert can(["auditor"], Action.VIEW_SCHEDULED)
+    assert not can(["auditor"], Action.SCHEDULE_MAINTENANCE)
+    assert not can(["auditor"], Action.COMPLETE_MAINTENANCE)

@@ -18,6 +18,10 @@ class TwinStore:
         self._raw = self._client[db_name]["raw_archive"]
         self._twins.create_index("vin", unique=True)
         self._raw.create_index("archived_at", expireAfterSeconds=int(RAW_ARCHIVE_TTL.total_seconds()))
+        # GDPR erasure deletes by driver_token; without this every erase scans the whole archive.
+        # Not partial on purpose: Mongo's planner won't use a `$type: string` partial index for an
+        # equality match, so the delete silently falls back to a collection scan.
+        self._raw.create_index("driver_token")
 
     def upsert_twin(self, vin: str, doc: dict[str, Any]) -> None:
         self._twins.replace_one({"vin": vin}, doc, upsert=True)

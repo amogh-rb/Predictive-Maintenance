@@ -1,0 +1,128 @@
+{
+  "$defs": {
+    "EventPayload": {
+      "properties": {
+        "dtc": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Dtc"
+        },
+        "event_type": {
+          "$ref": "#/$defs/EventType"
+        },
+        "freeze_frame": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "type": "number"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Freeze Frame"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        }
+      },
+      "required": [
+        "event_type"
+      ],
+      "title": "EventPayload",
+      "type": "object"
+    },
+    "EventType": {
+      "enum": [
+        "DTC_SET",
+        "DTC_CLEARED",
+        "HARSH_BRAKE",
+        "HARSH_ACCEL",
+        "HARSH_CORNER",
+        "IGNITION_ON",
+        "IGNITION_OFF",
+        "CHARGE_START",
+        "CHARGE_END",
+        "OVERSPEED"
+      ],
+      "title": "EventType",
+      "type": "string"
+    }
+  },
+  "properties": {
+    "driver_token": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Driver Token"
+    },
+    "fw_version": {
+      "title": "Fw Version",
+      "type": "string"
+    },
+    "msg_type": {
+      "const": "EVENT",
+      "title": "Msg Type",
+      "type": "string"
+    },
+    "payload": {
+      "$ref": "#/$defs/EventPayload"
+    },
+    "schema_ver": {
+      "default": 1,
+      "title": "Schema Ver",
+      "type": "integer"
+    },
+    "seq": {
+      "minimum": 0,
+      "title": "Seq",
+      "type": "integer"
+    },
+    "ts": {
+      "format": "date-time",
+      "title": "Ts",
+      "type": "string"
+    },
+    "vin": {
+      "maxLength": 17,
+      "minLength": 17,
+      "title": "Vin",
+      "type": "string"
+    }
+  },
+  "required": [
+    "vin",
+    "msg_type",
+    "seq",
+    "ts",
+    "fw_version",
+    "payload"
+  ],
+  "title": "EventMessage",
+  "type": "object"
+}

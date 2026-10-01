@@ -62,7 +62,7 @@ def run_simulation(
     stats = stats or SimulationStats()
     fleet = generate_fleet(size=fleet_size, tenant=tenant, seed=seed)
     now0 = datetime.now(timezone.utc)
-    failure_plans = plan_failures([v.vin for v in fleet], now0, seed=seed)
+    failure_plans = plan_failures(fleet, now0, seed=seed)
 
     n_active = min(active_vehicles or rate_eps, len(fleet))
     active = fleet[:n_active]

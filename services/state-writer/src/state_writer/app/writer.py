@@ -17,6 +17,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from state_writer.domain.twin import merge_twin
+from state_writer.domain.watchdog import StallWatchdog
 
 logger = logging.getLogger("state_writer.writer")
 
@@ -38,6 +39,7 @@ class StateWriter:
         alert_store,
         telemetry_topic: str,
         alerts_topic: str,
+        stall_timeout_s: float = 120.0,
     ):
         self._consumer = consumer
         self._latest_store = latest_store
@@ -48,6 +50,10 @@ class StateWriter:
         self._twins: dict[str, dict[str, Any]] = {}
         self.stats = WriterStats()
         self._stop = False
+        # Only real MessageConsumer implements has_assignment(); fakes used
+        # in unit tests don't, and skip stall detection entirely rather than
+        # needing every test double updated for it.
+        self._watchdog = StallWatchdog(timeout_s=stall_timeout_s) if hasattr(consumer, "has_assignment") else None
 
     def _handle_telemetry(self, message: dict[str, Any]) -> None:
         vin = message["vin"]
@@ -69,6 +75,8 @@ class StateWriter:
 
     def run_forever(self) -> None:
         while not self._stop:
+            if self._watchdog is not None:
+                self._watchdog.check(self._consumer.has_assignment())
             result = self._consumer.poll(1.0)
             if result is None:
                 continue

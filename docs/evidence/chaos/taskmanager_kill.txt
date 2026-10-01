@@ -1,0 +1,23 @@
+2026-09-29 13:56:50,098 INFO simulating 300 active vehicles (100000 in fleet, 4279 with planted failures) at ~300 events/s
+2026-09-29 13:56:59,209 INFO tick 10: 3326 messages sent so far
+2026-09-29 13:57:09,210 INFO tick 20: 6385 messages sent so far
+2026-09-29 13:57:19,219 INFO tick 30: 9442 messages sent so far
+2026-09-29 13:57:29,286 INFO tick 40: 12526 messages sent so far
+2026-09-29 13:57:39,246 INFO tick 50: 15601 messages sent so far
+2026-09-29 13:57:49,246 INFO tick 60: 18669 messages sent so far
+2026-09-29 13:57:59,242 INFO tick 70: 22050 messages sent so far
+2026-09-29 13:58:09,259 INFO tick 80: 25110 messages sent so far
+2026-09-29 13:58:19,253 INFO tick 90: 28138 messages sent so far
+pre-flight: Flink job must already be RUNNING (run `make flink-submit` first if not)
+--- load: 300 events/s for 90s (TM killed at t+25s) ---
+
+--- killing fleetpulse-flink-taskmanager-1 (simulating a TaskManager crash mid-load) ---
+--- restarting fleetpulse-flink-taskmanager-1 ---
+  Flink job status: RUNNING
+--- Flink job recovered to RUNNING ---
+
+--- settling 30s for Flink to drain any backlog from the outage ---
+
+sent 27408 FAST (vin, seq) pairs during the test
+landed in telemetry_fast: 27408 / 27408
+ZERO LOSS confirmed: every (vin, seq) sent during the TaskManager kill/restart landed in Timescale.

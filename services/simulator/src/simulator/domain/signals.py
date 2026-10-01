@@ -27,6 +27,14 @@ CHARGE_V_HEALTHY = 14.1
 CHARGE_V_CRITICAL = 11.8
 BRAKE_PAD_HEALTHY_PCT = 80.0
 BRAKE_PAD_CRITICAL_PCT = 8.0
+TRANS_C_HEALTHY = 90.0
+TRANS_C_CRITICAL = 135.0
+TIRE_KPA_HEALTHY = 800.0
+TIRE_KPA_CRITICAL = 500.0
+CELL_V_DELTA_HEALTHY_MV = 15.0
+CELL_V_DELTA_CRITICAL_MV = 250.0
+CELL_TEMP_HEALTHY_C = 40.0
+CELL_TEMP_CRITICAL_C = 65.0
 
 
 @dataclass
@@ -51,6 +59,10 @@ class SignalEngine:
             odo_km=self.rng.uniform(5_000, 300_000),
             engine_hours=self.rng.uniform(200, 12_000),
         )
+        # A tyre slow leak (failure 6) always drains the same physical tyre,
+        # not a random one every HEALTH tick — otherwise "one tyre drifts
+        # from its siblings" would never show up as a per-vehicle pattern.
+        self.weak_tyre_idx = self.rng.randint(0, 3)
 
     # -- driving-state random walk ---------------------------------------
     def step(self, dt_s: float) -> None:
@@ -85,6 +97,8 @@ class SignalEngine:
         coolant_c = COOLANT_HEALTHY_C + self.rng.uniform(-2, 2)
         oil_kpa = OIL_KPA_HEALTHY - rpm * 0.05 + self.rng.uniform(-10, 10)
         fuel_rate_lph = 0.0 if s.gear == 0 else 2 + load_pct * 0.08 + self.rng.uniform(-0.3, 0.3)
+        trans_c = coolant_c + self.rng.uniform(-5, 10)
+        reported_rpm = rpm
 
         if ftype == FailureType.COOLING:
             coolant_c += sev * (COOLANT_CRITICAL_C - COOLANT_HEALTHY_C)
@@ -92,6 +106,12 @@ class SignalEngine:
             oil_kpa -= sev * (OIL_KPA_HEALTHY - OIL_KPA_CRITICAL)
         elif ftype == FailureType.MISFIRE:
             fuel_rate_lph *= 1 + sev * 0.6
+        elif ftype == FailureType.TRANSMISSION:
+            trans_c += sev * (TRANS_C_CRITICAL - TRANS_C_HEALTHY)
+            if s.gear > 0:
+                # slip: rpm climbs relative to road speed instead of tracking
+                # gear normally (PLAN §1's "rpm rises while speed doesn't").
+                reported_rpm = rpm * (1 + sev * 0.7)
 
         payload = {
             "lat": 19.0 + self.rng.uniform(-2, 2),
@@ -106,13 +126,13 @@ class SignalEngine:
         }
         if self.vehicle.vehicle_type in (VehicleType.ICE, VehicleType.HYBRID):
             payload.update(
-                rpm=round(rpm, 0),
+                rpm=round(reported_rpm, 0),
                 load_pct=round(load_pct, 1),
                 throttle_pct=round(load_pct * self.rng.uniform(0.8, 1.1), 1),
                 coolant_c=round(coolant_c, 1),
                 oil_c=round(coolant_c - self.rng.uniform(0, 8), 1),
                 oil_kpa=round(max(0.0, oil_kpa), 1),
-                trans_c=round(coolant_c + self.rng.uniform(-5, 10), 1),
+                trans_c=round(trans_c, 1),
                 gear=s.gear,
                 fuel_pct=round(max(0.0, 70 - s.odo_km * 0.0005 % 70), 1),
                 fuel_rate_lph=round(max(0.0, fuel_rate_lph), 2),
@@ -151,9 +171,16 @@ class SignalEngine:
             for code in FAILURE_DTCS[ftype][: max(1, int(sev * len(FAILURE_DTCS[ftype])))]:
                 s.active_dtc.add(code)
 
+        tire_kpa = [round(TIRE_KPA_HEALTHY + self.rng.uniform(-30, 30), 1) for _ in range(4)]
+        tire_c = [round(30 + self.rng.uniform(-5, 10), 1) for _ in range(4)]
+        if ftype == FailureType.TYRE_LEAK:
+            idx = self.weak_tyre_idx
+            tire_kpa[idx] = round(max(50.0, tire_kpa[idx] - sev * (TIRE_KPA_HEALTHY - TIRE_KPA_CRITICAL)), 1)
+            tire_c[idx] = round(tire_c[idx] + sev * 25, 1)
+
         payload = {
-            "tire_kpa": [round(800 + self.rng.uniform(-30, 30), 1) for _ in range(4)],
-            "tire_c": [round(30 + self.rng.uniform(-5, 10), 1) for _ in range(4)],
+            "tire_kpa": tire_kpa,
+            "tire_c": tire_c,
             "brake_pad_pct": brake_pad_pct,
             "batt_12v_rest_v": round(batt_12v, 2),
             "crank_min_v": round(max(0.0, crank_min_v), 2),
@@ -164,11 +191,19 @@ class SignalEngine:
             "active_dtc": sorted(s.active_dtc),
         }
         if self.vehicle.vehicle_type in (VehicleType.EV, VehicleType.HYBRID):
+            cell_v_delta_mv = self.rng.uniform(5, 15)
+            cell_temp_max_c = 35 + self.rng.uniform(0, 10)
+            cell_temp_min_c = 30 + self.rng.uniform(0, 5)
+            soh_pct = 95 - self.rng.uniform(0, 10)
+            if ftype == FailureType.EV_HV_BATTERY:
+                cell_v_delta_mv += sev * (CELL_V_DELTA_CRITICAL_MV - CELL_V_DELTA_HEALTHY_MV)
+                cell_temp_max_c += sev * (CELL_TEMP_CRITICAL_C - CELL_TEMP_HEALTHY_C)
+                soh_pct -= sev * 25
             payload.update(
-                cell_v_delta_mv=round(20 + sev * 80 if ftype == FailureType.BATTERY else self.rng.uniform(5, 15), 1),
-                cell_temp_max_c=round(35 + self.rng.uniform(0, 10), 1),
-                cell_temp_min_c=round(30 + self.rng.uniform(0, 5), 1),
-                soh_pct=round(95 - self.rng.uniform(0, 10), 1),
+                cell_v_delta_mv=round(cell_v_delta_mv, 1),
+                cell_temp_max_c=round(cell_temp_max_c, 1),
+                cell_temp_min_c=round(cell_temp_min_c, 1),
+                soh_pct=round(max(0.0, soh_pct), 1),
             )
         return payload
 

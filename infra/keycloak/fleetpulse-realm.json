@@ -66,11 +66,43 @@
       "standardFlowEnabled": true,
       "directAccessGrantsEnabled": true,
       "redirectUris": ["http://localhost:5173/*"],
-      "webOrigins": ["http://localhost:5173"]
+      "webOrigins": ["http://localhost:5173"],
+      "fullScopeAllowed": true,
+      "protocolMappers": [
+        {
+          "name": "tenant",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.attribute": "tenant",
+            "claim.name": "tenant",
+            "jsonType.label": "String",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        },
+        {
+          "name": "realm roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "consentRequired": false,
+          "config": {
+            "claim.name": "realm_access.roles",
+            "jsonType.label": "String",
+            "multivalued": "true",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        }
+      ]
     }
   ],
   "users": [
     {
+      "id": "1db778c0-0b33-44d7-bd4c-66f0b79a6867",
       "username": "admin@demo",
       "email": "admin@demo.fleetpulse",
       "enabled": true,
@@ -80,6 +112,7 @@
       "realmRoles": ["fleet_admin"]
     },
     {
+      "id": "ed68475c-f6c9-4d8a-b5f7-8b04b3b1fd15",
       "username": "manager@demo",
       "email": "manager@demo.fleetpulse",
       "enabled": true,
@@ -89,6 +122,7 @@
       "realmRoles": ["fleet_manager"]
     },
     {
+      "id": "81a6c1f0-1201-4762-b936-c3387f21fc4f",
       "username": "tech@demo",
       "email": "tech@demo.fleetpulse",
       "enabled": true,
@@ -98,6 +132,7 @@
       "realmRoles": ["technician"]
     },
     {
+      "id": "e6e2f72e-e2ba-4b89-bad6-26da05fa143c",
       "username": "audit@demo",
       "email": "audit@demo.fleetpulse",
       "enabled": true,

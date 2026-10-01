@@ -37,6 +37,7 @@ infra/terraform/**/.terraform/
 infra/terraform/**/*.tfstate
 infra/terraform/**/*.tfstate.backup
 infra/terraform/**/.terraform.lock.hcl
+infra/helm/fleetpulse/charts/*.tgz
 
 # os / editor
 .DS_Store

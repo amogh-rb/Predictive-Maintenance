@@ -1,0 +1,15 @@
+NAME                                  READY   STATUS    RESTARTS   AGE     IP            NODE                       NOMINATED NODE   READINESS GATES
+pod/fleetpulse-api-7cb54bdd8c-pqmtf   1/1     Running   0          7m28s   10.244.0.7    fleetpulse-control-plane   <none>           <none>
+pod/fleetpulse-postgresql-0           1/1     Running   0          57s     10.244.0.10   fleetpulse-control-plane   <none>           <none>
+
+NAME                               TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)    AGE     SELECTOR
+service/fleetpulse-api             ClusterIP   10.96.85.73    <none>        8000/TCP   7m28s   app.kubernetes.io/instance=fleetpulse,app.kubernetes.io/name=api
+service/fleetpulse-postgresql      ClusterIP   10.96.180.63   <none>        5432/TCP   7m28s   app.kubernetes.io/component=primary,app.kubernetes.io/instance=fleetpulse,app.kubernetes.io/name=postgresql
+service/fleetpulse-postgresql-hl   ClusterIP   None           <none>        5432/TCP   7m28s   app.kubernetes.io/component=primary,app.kubernetes.io/instance=fleetpulse,app.kubernetes.io/name=postgresql
+service/kubernetes                 ClusterIP   10.96.0.1      <none>        443/TCP    12m     <none>
+
+NAME                             READY   UP-TO-DATE   AVAILABLE   AGE     CONTAINERS   IMAGES                  SELECTOR
+deployment.apps/fleetpulse-api   1/1     1            1           7m28s   api          fleetpulse-api:latest   app.kubernetes.io/instance=fleetpulse,app.kubernetes.io/name=api
+
+NAME                                     READY   AGE     CONTAINERS   IMAGES
+statefulset.apps/fleetpulse-postgresql   1/1     7m28s   postgresql   docker.io/bitnami/postgresql:latest

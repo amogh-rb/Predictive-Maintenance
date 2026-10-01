@@ -12,9 +12,9 @@ Tick a row when its "Done when" condition is met. This is the source of truth fo
 | 4 | Flink SQL jobs + state-writer | [x] | Alerts in PG within seconds |
 | 5 | Backfill + Spark features + sklearn model | [x] | Risk scores + `docs/evidence/ml/report.md` |
 | 6 | FastAPI + Keycloak + RBAC/RLS + WebSocket | [x] | Secured API passes tests |
-| 7 | React UI (4 screens + audit) | [ ] | Full journey in the browser |
-| 8 | Copilot (LangGraph + MCP) + OTel/Prometheus/Grafana | [ ] | Copilot answers; Grafana shows throughput/lag/latency |
-| 9 | Integration/contract/BDD/CI security; Helm; Terraform; SQL EXPLAIN | [ ] | Evidence folder complete |
+| 7 | React UI (4 screens + audit) | [x] | Full journey in the browser (session 7's own live click-through) |
+| 8 | Copilot (LangGraph + MCP) + OTel/Prometheus/Grafana | [x] | Copilot answers; Grafana shows throughput/lag/latency |
+| 9 | Integration/contract/BDD/CI security; Helm; Terraform; SQL EXPLAIN | [x] | Evidence folder complete (see docs/evidence/{sql,helm,terraform}/) |
 | 10 | Solution document, ADRs, diagrams, README | [ ] | Doc ready |
 
 ---
@@ -131,7 +131,9 @@ One universal JSON format for all trucks: flat, metric units, ISO-8601 UTC times
 - **Vectors:** failure signatures stored in pgvector for "similar past failures".
 
 ### Agentic AI
-LangGraph agent using Claude (model configurable; load the `claude-api` skill before building). It calls tools through an **MCP server**:
+LangGraph agent using Claude (model configurable; load the `claude-api` skill before building) —
+**built with Google Gemini's free tier instead** (session 8, `docs/PROGRESS.md`), to avoid a paid
+`ANTHROPIC_API_KEY` for this hackathon; the LangGraph/MCP architecture below is unchanged. It calls tools through an **MCP server**:
 - `get_fleet_risk`, `get_vehicle_health`, `list_alerts`, `search_dtc_kb` (pgvector RAG), `find_nearest_depot` (Dijkstra) — all read-only;
 - `propose_work_order` — goes to a human approval queue.
 
@@ -249,9 +251,11 @@ The "You" column is manual work done between sessions, often while the limit res
 | **5** | Tue eve | History backfill script; Spark feature job; sklearn model vs baseline with metrics report; scoring to PG; pgvector DTC KB + failure signatures | Run the backfill overnight | Risk scores + `docs/evidence/ml/report.md` |
 | **6** | Wed AM | FastAPI: Keycloak realm export, JWT/RBAC, RLS session tenant, keyset pagination, Redis rate limit, masking, audit, erasure, WebSocket alerts, Dijkstra depot booking + tests | Click through Keycloak login once | Secured API passes tests |
 | **7** | Wed PM | React UI (4 screens + audit view) | Use the app; note visual bugs in one list for the next session | Full journey in the browser |
-| **8** | Wed eve | Copilot (LangGraph + MCP server + Claude, approval queue, audit, stub fallback); OTel + Prometheus + Grafana dashboards | Add `ANTHROPIC_API_KEY` locally; start the 1 h soak test overnight | Copilot answers; Grafana shows throughput/lag/latency |
+| **8** | Wed eve | ✅ Copilot (LangGraph + MCP server + Gemini free tier, approval queue, audit, stub fallback); OTel + Prometheus + Grafana dashboards | Add `GOOGLE_API_KEY` locally (free tier); start the 1 h soak test overnight | Copilot answers; Grafana shows throughput/lag/latency |
 | **9** | Thu AM | Integration (Testcontainers), Pact, behave BDD, CI with Semgrep/Trivy/ZAP; Helm chart + kind; Terraform; EXPLAIN before/after for 3 queries; UI fixes from your list | Run burst + chaos scripts and k6; save outputs to `docs/evidence/`; verify CI is green | Evidence folder complete |
-| **10** | Thu PM (by 16:00) | Solution Document drafted from PLAN/PROGRESS/evidence; 5 ADRs; STRIDE; C4 and sequence diagrams (Mermaid); README | Add screenshots and video timestamps, proofread, export PDF | Doc ready |
+| **10** | extra buffer (deadline pushed to Thu 1 Oct 20:00, >48h slack found in session 10) | Chaos evidence completeness — **done**: added `chaos_broker_test.py` (3-broker chaos profile, real producer/consumer, acks=all) and `chaos_gateway_test.py` (scales ingest-gateway to 2 copies); found and fixed a real bug along the way — the gateway's MQTT client_id was hardcoded, so scaling would have silently kicked the first copy instead of load-sharing; both new chaos scripts run clean, zero loss, evidence saved | Still open: run the overnight `make simulate` soak and save the summary to `docs/evidence/load/` | `docs/evidence/chaos/` has all 3 kill scenarios with 0-loss reconciliation — done; `docs/evidence/load/` soak output — pending (user running it tonight) |
+| **11** | extra buffer — **done** | Depth: failures 6-8 (tyre slow leak, transmission, EV HV battery) promoted from Should to built — simulator signals (`signals.py`), 3 new real-time Flink rules all confirmed firing live (tyre, EV battery, transmission — the last after the HOP-window fix below), Spark feature columns (slip, tyre min, cell temp + matching slopes), sklearn models trained + scored for all 8 types, `docs/evidence/ml/report.md` regenerated. Also fixed 2 real bugs found along the way: `alert_misfire_mil` was flagging any active DTC as "misfire" regardless of which code; EV cell imbalance was gated on the wrong failure type (12V battery, not EV HV battery). | Spot-check a few alerts/predictions for the new failure types | Failures 6-8 predict via ML and alert live — all verified end-to-end (see PROGRESS sessions 10b/10c) |
+| **12** | Thu PM (by 16:00) | Solution Document drafted from PLAN/PROGRESS/evidence; 5 ADRs; STRIDE; C4 and sequence diagrams (Mermaid); README | Add screenshots and video timestamps, proofread, export PDF | Doc ready |
 | — | Thu 16:00–19:45 | *(buffer; only small fixes)* | Record and upload the video; tag `v1.0-submission`; submit | Submitted |
 
 ### 6.4 If usage runs out early
@@ -284,3 +288,5 @@ The "You" column is manual work done between sessions, often while the limit res
 - A GitHub repo URL (needed for CI) and `ANTHROPIC_API_KEY`.
 - Team name for the cover page.
 - Allow me to create `.wslconfig` (this restarts WSL and Docker).
+- ~~Known issue (session 10b): HOP-window real-time rules not firing live~~ — **resolved in session 10c** (three stacked infra bugs: idle-partition watermark stall, Kafka GC-pause coordinator loss, Kafka data on a non-persistent path; see PROGRESS 10c).
+- **For the solution doc:** sustained-window rules (cooling, transmission) alert ~6-7s after the 30s window closes — 5s of that is the watermark's out-of-orderness bound (`00_source.sql`), which the simulator's reordering noise needs. So "critical alert < 5s" holds for the single-reading rules (lubrication, 12V, MIL, brakes, tyre, EV battery), not the windowed ones; state the ~7s figure honestly.

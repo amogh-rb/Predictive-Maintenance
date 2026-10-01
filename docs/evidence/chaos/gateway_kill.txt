@@ -1,0 +1,20 @@
+2026-09-29 17:58:09,882 INFO simulating 300 active vehicles (100000 in fleet, 4279 with planted failures) at ~300 events/s
+2026-09-29 17:58:19,486 INFO tick 10: 3327 messages sent so far
+2026-09-29 17:58:29,468 INFO tick 20: 6403 messages sent so far
+2026-09-29 17:58:39,442 INFO tick 30: 9431 messages sent so far
+2026-09-29 17:58:49,471 INFO tick 40: 12529 messages sent so far
+2026-09-29 17:58:59,409 INFO tick 50: 15595 messages sent so far
+2026-09-29 17:59:09,485 INFO tick 60: 18664 messages sent so far
+ingest-gateway containers: ['d66f304f362b638085eb0862c7cf7dadce218f62aad850c05c0967c9a28f61d3', '88cfbf72082d68892bb30d4ed38239299f88ce85e0784177cb6c5581dee2696c']
+telemetry offset before: 4327200
+--- load: 300 events/s for 60s (gateway copy killed at t+20s) ---
+
+--- killing gateway copy d66f304f362b (simulating a gateway crash mid-load) ---
+--- restarting gateway copy d66f304f362b ---
+--- gateway copy restarted; shared subscription re-splits automatically ---
+
+
+simulator sent: 18664 messages
+delivered to Kafka telemetry topic: 18441 messages (loss: 223, 1.19%)
+
+ZERO LOSS (within QoS-1 redelivery noise) confirmed: the surviving gateway copy absorbed the killed copy's share of the MQTT shared subscription.

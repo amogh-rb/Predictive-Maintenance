@@ -1,0 +1,60 @@
+{{- range $name, $svc := .Values.services }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "fleetpulse.serviceName" (dict "root" $ "name" $name) }}
+  labels:
+    {{- include "fleetpulse.labels" (dict "root" $ "name" $name) | nindent 4 }}
+spec:
+  replicas: {{ $svc.replicas }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ $name }}
+      app.kubernetes.io/instance: {{ $.Release.Name }}
+  template:
+    metadata:
+      labels:
+        {{- include "fleetpulse.labels" (dict "root" $ "name" $name) | nindent 8 }}
+    spec:
+      containers:
+        - name: {{ $name }}
+          image: {{ include "fleetpulse.image" (dict "root" $ "svc" $svc) }}
+          # IfNotPresent, not k8s's own "latest"-tag default (Always): on
+          # kind these images are `kind load docker-image`d locally, never
+          # pushed to a registry, so an Always pull 404s even though the
+          # image is already on the node.
+          imagePullPolicy: IfNotPresent
+          {{- if $svc.port }}
+          ports:
+            - containerPort: {{ $svc.port }}
+          {{- end }}
+          env:
+            - name: TENANT_DEFAULT
+              value: {{ $.Values.global.tenant | quote }}
+            {{- range $k, $v := $svc.env }}
+            - name: {{ $k }}
+              value: {{ $v | quote }}
+            {{- end }}
+          resources:
+            {{- toYaml $svc.resources | nindent 12 }}
+          {{- if eq $svc.probe.type "http" }}
+          readinessProbe:
+            httpGet: { path: {{ $svc.probe.path }}, port: {{ $svc.probe.port }} }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: {{ $svc.probe.path }}, port: {{ $svc.probe.port }} }
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          {{- else }}
+          readinessProbe:
+            exec: { command: {{ $svc.probe.command | toJson }} }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            exec: { command: {{ $svc.probe.command | toJson }} }
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          {{- end }}
+---
+{{- end }}

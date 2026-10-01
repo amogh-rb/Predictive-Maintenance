@@ -1,0 +1,168 @@
+# Default (kind / local) values. `values-gcp.yaml` / `values-azure.yaml`
+# override the storageClass/ingress/registry bits only (PLAN §6.2) — no
+# template changes needed to move cloud.
+global:
+  imageRegistry: "" # e.g. "123456789.dkr.ecr.ap-south-1.amazonaws.com/fleetpulse"
+  imageTag: "latest"
+  tenant: demo
+
+# Chart dependencies (PLAN §3): the polyglot OLTP/cache/document stores.
+# Kafka (Strimzi) and Flink (its own operator) are installed separately —
+# they're cluster-scoped operators, not something a single app chart should
+# own — see infra/k8s-local/README for the two-step install order.
+# image.tag: latest on all three, not each subchart's own pinned default:
+# Bitnami stopped publishing new versioned tags to the free docker.io/bitnami/*
+# repos in 2025 and started 404ing the older dated tags each chart version
+# still defaults to (confirmed live: `16.4.0-debian-12-r14` 404s,
+# `bitnami/postgresql:latest` pulls fine) — the same class of "the tool moved
+# out from under a pinned reference" issue as session 1's MinIO→Garage swap.
+# A production rollout should pin to a real vulnerability-scanned digest
+# instead of floating `latest`; `latest` is the pragmatic unblock for a POC.
+postgresql:
+  enabled: true
+  image:
+    tag: latest
+  auth:
+    username: fleetpulse
+    database: fleetpulse
+    existingSecret: fleetpulse-postgres-auth
+  primary:
+    persistence:
+      size: 10Gi
+
+redis:
+  enabled: true
+  image:
+    tag: latest
+  architecture: standalone
+  auth:
+    existingSecret: fleetpulse-redis-auth
+
+mongodb:
+  enabled: true
+  image:
+    tag: latest
+  auth:
+    existingSecret: fleetpulse-mongo-auth
+
+# One entry per application service this chart deploys (PLAN §4 services
+# list minus simulator, which never runs in a cluster). Each gets a
+# Deployment + Service + HPA + PDB + NetworkPolicy from the shared templates.
+services:
+  ingest-gateway:
+    image: ingest-gateway
+    replicas: 2
+    port: null # no inbound service — MQTT-subscriber only
+    resources:
+      requests: { cpu: 100m, memory: 128Mi }
+      limits: { cpu: 500m, memory: 256Mi }
+    env:
+      KAFKA_BROKERS: fleetpulse-kafka-bootstrap:9092
+    probe:
+      type: exec
+      command: ["true"] # no HTTP endpoint; liveness is "process didn't crash"
+    hpa:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 8
+      targetCPUUtilizationPercentage: 70
+
+  state-writer:
+    image: state-writer
+    replicas: 2
+    port: null
+    resources:
+      requests: { cpu: 100m, memory: 128Mi }
+      limits: { cpu: 500m, memory: 256Mi }
+    env:
+      KAFKA_BROKERS: fleetpulse-kafka-bootstrap:9092
+    probe:
+      type: exec
+      command: ["true"]
+    hpa:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 8
+      targetCPUUtilizationPercentage: 70
+
+  api:
+    image: api
+    replicas: 2
+    port: 8000
+    resources:
+      requests: { cpu: 200m, memory: 256Mi }
+      limits: { cpu: 1, memory: 512Mi }
+    env:
+      POSTGRES_HOST: fleetpulse-postgresql
+      REDIS_HOST: fleetpulse-redis-master
+      MONGO_HOST: fleetpulse-mongodb
+      KAFKA_BROKERS: fleetpulse-kafka-bootstrap:9092
+    probe:
+      type: http
+      path: /healthz
+      port: 8000
+    hpa:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 10
+      targetCPUUtilizationPercentage: 70
+
+  copilot:
+    image: copilot
+    replicas: 1
+    port: 9100
+    resources:
+      requests: { cpu: 100m, memory: 256Mi }
+      limits: { cpu: 500m, memory: 512Mi }
+    env:
+      MCP_SERVER_URL: http://fleetpulse-mcp-server:9001/sse
+    probe:
+      type: exec
+      command: ["true"]
+    hpa:
+      enabled: false
+
+  mcp-server:
+    image: mcp-server
+    replicas: 1
+    port: 9001
+    resources:
+      requests: { cpu: 100m, memory: 128Mi }
+      limits: { cpu: 500m, memory: 256Mi }
+    env:
+      POSTGRES_HOST: fleetpulse-postgresql
+      REDIS_HOST: fleetpulse-redis-master
+    probe:
+      type: exec
+      command: ["true"]
+    hpa:
+      enabled: false
+
+  web:
+    image: web
+    replicas: 2
+    port: 5173
+    resources:
+      requests: { cpu: 50m, memory: 64Mi }
+      limits: { cpu: 250m, memory: 128Mi }
+    env: {}
+    probe:
+      type: http
+      path: /
+      port: 5173
+    hpa:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 6
+      targetCPUUtilizationPercentage: 70
+
+ingress:
+  enabled: false
+  className: nginx
+  host: fleetpulse.local
+
+podDisruptionBudget:
+  minAvailable: 1
+
+networkPolicy:
+  enabled: true

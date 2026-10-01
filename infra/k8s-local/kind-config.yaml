@@ -1,0 +1,11 @@
+# `kind create cluster --config infra/k8s-local/kind-config.yaml --name fleetpulse`
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+  - role: control-plane
+    extraPortMappings:
+      # 18000, not 8000: the real docker-compose `api` service already
+      # holds 8000 on this dev machine while the `core` stack is up.
+      - containerPort: 30080
+        hostPort: 18000
+        protocol: TCP
