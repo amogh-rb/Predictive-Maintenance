@@ -12,7 +12,7 @@ import logging
 import os
 import threading
 
-from confluent_kafka import Consumer
+from confluent_kafka import OFFSET_END, Consumer, TopicPartition
 from fastapi import WebSocket
 
 logger = logging.getLogger("api.ws")
@@ -45,13 +45,25 @@ class AlertBroadcaster:
             self._thread.join(timeout=5)
 
     def _consume_loop(self) -> None:
+        # Each API process wants every alert (it fans out to its own sockets), so there is nothing to
+        # share with other consumers: assign the partitions directly from the end instead of joining a
+        # consumer group. No group means no rebalances or session timeouts, which under load left the
+        # feed silent for minutes (a group join stuck behind a busy broker).
         consumer = Consumer({
             "bootstrap.servers": os.environ.get("KAFKA_BROKERS", "localhost:9092"),
             "group.id": "api-ws-broadcaster",
+            "enable.auto.commit": False,
             "auto.offset.reset": "latest",
         })
-        consumer.subscribe(["alerts"])
         try:
+            while not self._stop.is_set():
+                try:
+                    partitions = consumer.list_topics("alerts", timeout=10).topics["alerts"].partitions
+                    consumer.assign([TopicPartition("alerts", p, OFFSET_END) for p in partitions])
+                    break
+                except Exception:
+                    logger.warning("alerts topic not reachable yet, retrying")
+                    self._stop.wait(3)
             while not self._stop.is_set():
                 msg = consumer.poll(1.0)
                 if msg is None or msg.error():

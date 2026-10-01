@@ -38,29 +38,44 @@ export default function AlertsPage() {
   }, [openOnly]);
 
   useEffect(() => {
-    const ws = new WebSocket(wsUrl("/v1/ws/alerts"));
-    wsRef.current = ws;
-    ws.onopen = () => setLive(true);
-    ws.onclose = () => setLive(false);
-    ws.onerror = () => setLive(false);
-    ws.onmessage = (evt) => {
-      try {
-        // Kafka `alerts` messages (Flink's sink) aren't Postgres rows: no id /
-        // vehicle_id / opened_at yet, just `detected_at`.
-        const msg = JSON.parse(evt.data) as Omit<Alert, "id" | "opened_at" | "closed_at"> & { detected_at: string };
-        const alert: Alert = {
-          ...msg,
-          id: `live-${msg.vin}-${msg.detected_at}-${Math.random().toString(36).slice(2, 8)}`,
-          opened_at: msg.detected_at,
-          closed_at: null,
-          dtc_codes: msg.dtc_codes ?? [],
-        };
-        setAlerts((prev) => [alert, ...prev].slice(0, 200));
-      } catch {
-        // non-JSON frame, ignore
-      }
+    // Reconnect (with a fresh token) whenever the socket drops, so the feed never stays dead until a refresh.
+    let closed = false;
+    let retry: number | undefined;
+
+    function connect() {
+      const ws = new WebSocket(wsUrl("/v1/ws/alerts"));
+      wsRef.current = ws;
+      ws.onopen = () => setLive(true);
+      ws.onerror = () => setLive(false);
+      ws.onclose = () => {
+        setLive(false);
+        if (!closed) retry = window.setTimeout(connect, 2000);
+      };
+      ws.onmessage = (evt) => {
+        try {
+          // Kafka `alerts` messages (Flink's sink) aren't Postgres rows: no id /
+          // vehicle_id / opened_at yet, just `detected_at`.
+          const msg = JSON.parse(evt.data) as Omit<Alert, "id" | "opened_at" | "closed_at"> & { detected_at: string };
+          const alert: Alert = {
+            ...msg,
+            id: `live-${msg.vin}-${msg.detected_at}-${Math.random().toString(36).slice(2, 8)}`,
+            opened_at: msg.detected_at,
+            closed_at: null,
+            dtc_codes: msg.dtc_codes ?? [],
+          };
+          setAlerts((prev) => [alert, ...prev].slice(0, 200));
+        } catch {
+          // non-JSON frame, ignore
+        }
+      };
+    }
+
+    connect();
+    return () => {
+      closed = true;
+      window.clearTimeout(retry);
+      wsRef.current?.close();
     };
-    return () => ws.close();
   }, []);
 
   const stats = useMemo(() => {
