@@ -39,7 +39,7 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
       - run: pip install -q -r requirements-dev.txt -r services/ml/requirements.txt -e libs
       - run: pip install -q coverage
-      - name: Unit tests with coverage (PLAN §5 target: >=80% on fleetcore/ingest-gateway/api)
+      - name: "Unit tests with coverage (PLAN §5 target: >=80% on fleetcore/ingest-gateway/api)"
         run: |
           coverage run -m pytest tests/unit -q
           coverage report -m --include="libs/*,services/ingest-gateway/*,services/api/*"
